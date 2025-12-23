@@ -1,0 +1,50 @@
+{
+    "name": "spur-backend",
+    "version": "1.0.0",
+    "description": "Spur AI Live Chat Agent - Backend",
+    "main": "dist/server.js",
+    "type": "commonjs",
+    "scripts": {
+        "dev": "nodemon --exec ts-node src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "lint": "eslint . --ext .ts",
+        "format": "prettier --write \"src/**/*.ts\""
+    },
+    "keywords": [
+        "chat",
+        "ai",
+        "langchain",
+        "openai"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@langchain/openai": "^0.3.16",
+        "langchain": "^0.3.7",
+        "express": "^5.1.0",
+        "socket.io": "^4.8.1",
+        "mongoose": "^8.17.1",
+        "dotenv": "^17.2.1",
+        "cors": "^2.8.5",
+        "cookie-parser": "^1.4.7",
+        "jsonwebtoken": "^9.0.2",
+        "bcryptjs": "^3.0.2",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.0",
+        "@types/node": "^22.10.5",
+        "@types/cors": "^2.8.17",
+        "@types/cookie-parser": "^1.4.7",
+        "@types/jsonwebtoken": "^9.0.7",
+        "@types/bcryptjs": "^2.4.6",
+        "typescript": "^5.7.3",
+        "ts-node": "^10.9.2",
+        "nodemon": "^3.1.9",
+        "@typescript-eslint/eslint-plugin": "^8.20.0",
+        "@typescript-eslint/parser": "^8.20.0",
+        "eslint": "^9.18.0",
+        "prettier": "^3.4.2"
+    }
+}
