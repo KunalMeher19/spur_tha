@@ -56,20 +56,17 @@ async function generateStreamingResponse(conversationHistory, userMessage, onChu
         // Stream the response
         let fullResponse = '';
         const stream = await chatModel.stream(messages);
-        console.log('[LangChain] Stream started');
 
         for await (const chunk of stream) {
             const content = chunk.content;
             if (content) {
                 fullResponse += content;
-                console.log('[LangChain] Chunk received:', content.substring(0, 20) + '...');
                 // Call the chunk callback
                 if (onChunk && typeof onChunk === 'function') {
                     onChunk(content);
                 }
             }
         }
-        console.log('[LangChain] Stream complete, total length:', fullResponse.length);
 
         return fullResponse;
 
