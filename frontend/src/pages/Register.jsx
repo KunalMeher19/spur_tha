@@ -4,20 +4,20 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const Register = () => {
-    const [ form, setForm ] = useState({ email: '', firstname: '', lastname: '', password: '' });
-    const [ submitting, setSubmitting ] = useState(false);
+    const [form, setForm] = useState({ email: '', firstname: '', lastname: '', password: '' });
+    const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
 
     function handleChange(e) {
         const { name, value } = e.target;
-        setForm(f => ({ ...f, [ name ]: value }));
+        setForm(f => ({ ...f, [name]: value }));
     }
 
     async function handleSubmit(e) {
         e.preventDefault();
         setSubmitting(true);
-        const registerPromise = axios.post("https://aura-x4bd.onrender.com/api/auth/register", {
+        const registerPromise = axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
             email: form.email,
             fullName: {
                 firstName: form.firstname,

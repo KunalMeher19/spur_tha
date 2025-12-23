@@ -9,7 +9,7 @@ const LogoutButton = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('https://aura-x4bd.onrender.com/api/auth/logout', {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {}, {
         withCredentials: true
       });
       toast.success('Logged out successfully');

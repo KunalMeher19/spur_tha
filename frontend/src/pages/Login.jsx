@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Link,useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 
 const Login = () => {
-    const [ form, setForm ] = useState({ email: '', password: '' });
-    const [ submitting, setSubmitting ] = useState(false);
+    const [form, setForm] = useState({ email: '', password: '' });
+    const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
-    
+
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -20,7 +20,7 @@ const Login = () => {
         setSubmitting(true);
 
 
-        const loginPromise = axios.post("https://aura-x4bd.onrender.com/api/auth/login", {
+        const loginPromise = axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
             email: form.email,
             password: form.password
         },
@@ -58,11 +58,11 @@ const Login = () => {
                 <form className="auth-form" onSubmit={handleSubmit} noValidate>
                     <div className="field-group">
                         <label htmlFor="login-email">Email</label>
-                        <input id="login-email" name="email" type="email" autoComplete="email" placeholder="you@example.com"  onChange={handleChange} required />
+                        <input id="login-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" onChange={handleChange} required />
                     </div>
                     <div className="field-group">
                         <label htmlFor="login-password">Password</label>
-                        <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password"  onChange={handleChange} required />
+                        <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password" onChange={handleChange} required />
                     </div>
                     <button type="submit" className="primary-btn" disabled={submitting}>
                         {submitting ? 'Signing in...' : 'Sign in'}

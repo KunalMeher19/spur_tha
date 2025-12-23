@@ -71,7 +71,7 @@ const Home = () => {
 
   const createNewChat = async (title) => {
     try {
-      const response = await axios.post("https://aura-x4bd.onrender.com/api/chat", {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat`, {
         title
       }, {
         withCredentials: true
@@ -89,7 +89,7 @@ const Home = () => {
 
   useEffect(() => {
     // Fetch chats
-    axios.get("https://aura-x4bd.onrender.com/api/chat", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_API_URL}/api/chat`, { withCredentials: true })
       .then(response => {
         // Server returns newest first; we keep same order, ensure selecting the first chat automatically
         const chatsResp = response.data.chats;
@@ -105,7 +105,7 @@ const Home = () => {
       });
 
     // Setup socket
-    const tempSocket = io("https://aura-x4bd.onrender.com", {
+    const tempSocket = io(import.meta.env.VITE_WS_URL, {
       withCredentials: true,
     });
 
@@ -347,7 +347,7 @@ const Home = () => {
 
   const getMessages = async (chatId) => {
     try {
-      const response = await axios.get(`https://aura-x4bd.onrender.com/api/chat/messages/${chatId}`, { withCredentials: true });
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/messages/${chatId}`, { withCredentials: true });
       setMessages(response.data.messages.map(m => ({
         type: m.role === 'user' ? 'user' : 'ai',
         content: m.content,
@@ -362,7 +362,7 @@ const Home = () => {
   const deleteChat = async (chatId) => {
     try {
       dispatch(setChats(chats.filter(chat => chat._id !== chatId)));
-      await axios.delete(`https://aura-x4bd.onrender.com/api/chat/messages/${chatId}`, { withCredentials: true });
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/chat/messages/${chatId}`, { withCredentials: true });
       toast.success('Chat deleted successfully');
       if (activeChatId === chatId) {
         dispatch(selectChat(null));
