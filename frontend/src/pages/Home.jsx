@@ -51,8 +51,6 @@ const Home = () => {
   const [messages, setMessages] = useState([]);
   const [composerMode, setComposerMode] = useState('normal');
   const [isAITyping, setIsAITyping] = useState(false);  // Typing indicator state
-  const [chunkBuffer, setChunkBuffer] = useState(''); // Buffer for smooth typewriter
-  const [isTyping, setIsTyping] = useState(false); // Track if typewriter is active
 
   useEffect(() => {
     // Handle window resize
@@ -88,40 +86,6 @@ const Home = () => {
   }
 
   const _activeChat = chats.find(c => c.id === activeChatId) || null;
-
-  // Typewriter effect for smooth character-by-character rendering
-  useEffect(() => {
-    if (chunkBuffer.length === 0 || isTyping) return;
-
-    setIsTyping(true);
-    let index = 0;
-    const typingSpeed = 20; // milliseconds per character (50 chars/second)
-
-    const timer = setInterval(() => {
-      if (index < chunkBuffer.length) {
-        const char = chunkBuffer[index];
-
-        setMessages((prev) => {
-          const streamingMsg = prev.find(m => m.streaming);
-          if (streamingMsg) {
-            return prev.map(m =>
-              m.streaming ? { ...m, content: m.content + char } : m
-            );
-          }
-          return prev;
-        });
-
-        index++;
-      } else {
-        // Finished typing this buffer
-        clearInterval(timer);
-        setChunkBuffer('');
-        setIsTyping(false);
-      }
-    }, typingSpeed);
-
-    return () => clearInterval(timer);
-  }, [chunkBuffer, isTyping]);
 
   useEffect(() => {
     // Fetch chats
