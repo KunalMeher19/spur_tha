@@ -17,4 +17,8 @@ router.get('/', authMiddleware.authUser, chatController.getChats)
 router.get('/messages/:id', authMiddleware.authUser, chatController.getMessages)
 
 
+/* POST /api/chat/message (Assignment requirement) */
+router.post('/message', authMiddleware.authUser, chatController.sendMessage)
+
+
 module.exports = router;

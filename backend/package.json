@@ -13,6 +13,8 @@
   "type": "commonjs",
   "dependencies": {
     "@google/genai": "^1.14.0",
+    "@langchain/core": "^1.1.8",
+    "@langchain/openai": "^1.2.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "bcryptjs": "^3.0.2",
     "cookie": "^1.0.2",
@@ -21,7 +23,9 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "langchain": "^1.2.3",
     "mongoose": "^8.17.1",
+    "openai": "^6.15.0",
     "socket.io": "^4.8.1"
   }
 }

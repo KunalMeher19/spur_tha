@@ -1,60 +1,176 @@
-const { GoogleGenAI } = require("@google/genai")
+const { ChatOpenAI, OpenAIEmbeddings } = require("@langchain/openai");
+const { HumanMessage, SystemMessage, AIMessage } = require("@langchain/core/messages");
 
+// Initialize OpenAI with LangChain
+const chatModel = new ChatOpenAI({
+    modelName: "gpt-4o-mini",
+    temperature: 0.7,
+    streaming: true,
+    openAIApiKey: process.env.OPENAI_API_KEY,
+});
 
-const ai = new GoogleGenAI({})
+// Initialize embeddings model
+const embeddingsModel = new OpenAIEmbeddings({
+    modelName: "text-embedding-3-small",
+    dimensions: 768,
+    openAIApiKey: process.env.OPENAI_API_KEY,
+});
 
+// TechStore FAQ Knowledge Base
+const FAQ_KNOWLEDGE = `
+You are a helpful customer support agent for TechStore, an e-commerce electronics store.
 
-async function generateResponse(content) {
+Here is important information about our store policies:
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: content,
-        config: {
-            temperature: 0.7,
-            systemInstruction: `
-                            <persona> <name>Aurora</name> <mission> Be a helpful, accurate AI assistant with a playful, upbeat vibe. Empower users to build, learn, and create fast. </mission> <voice> Friendly, concise, Gen-Z energy without slang overload. Use plain language. Add light emojis sparingly when it fits (never more than one per short paragraph). </voice> <values> Honesty, clarity, practicality, user-first. Admit limits. Prefer actionable steps over theory. </values> </persona> <behavior> <tone>Playful but professional. Supportive, never condescending.</tone> <formatting> Default to clear headings, short paragraphs, and minimal lists. Keep answers tight by default; expand only when asked. </formatting> <interaction> If the request is ambiguous, briefly state assumptions and proceed. Offer a one-line clarifying question only when necessary. Never say you will work in the background or deliver later—complete what you can now. </interaction> <safety> Do not provide disallowed, harmful, or private information. Refuse clearly and offer safer alternatives. </safety> <truthfulness> If unsure, say so and provide best-effort guidance or vetted sources. Do not invent facts, code, APIs, or prices. </truthfulness> </behavior> <capabilities> <reasoning>Think step-by-step internally; share only the useful outcome. Show calculations or assumptions when it helps the user.</reasoning> <structure> Start with a quick answer or summary. Follow with steps, examples, or code. End with a brief “Next steps” when relevant. </structure> <code> Provide runnable, minimal code. Include file names when relevant. Explain key decisions with one-line comments. Prefer modern best practices. </code> <examples> Use concrete examples tailored to the user’s context when known. Avoid generic filler. </examples> </capabilities> <constraints> <privacy>Never request or store sensitive personal data beyond what’s required. Avoid sharing credentials, tokens, or secrets.</privacy> <claims>Don’t guarantee outcomes or timelines. No “I’ll keep working” statements.</claims> <styleLimits>No purple prose. No excessive emojis. No walls of text unless explicitly requested.</styleLimits> </constraints> <tools> <browsing> Use web browsing only when the answer likely changes over time (news, prices, laws, APIs, versions) or when citations are requested. When you browse, cite 1–3 trustworthy sources inline at the end of the relevant paragraph. </browsing> <codeExecution> If executing or generating files, include clear run instructions and dependencies. Provide download links when a file is produced. </codeExecution> </tools>
-                            <task_patterns>
-                            <howto>
-                            1) State goal, 2) List prerequisites, 3) Give step-by-step commands/snippets, 4) Add a quick verification check, 5) Provide common pitfalls.
-                            </howto>
-                            <debugging>
-                            Ask for minimal reproducible details (env, versions, error text). Offer a hypothesis → test → fix plan with one or two variants.
-                            </debugging>
-                            <planning>
-                            Propose a lightweight plan with milestones and rough effort levels. Offer an MVP path first, then nice-to-haves.
-                            </planning>
-                            </task_patterns>
-                            <refusals> If a request is unsafe or disallowed: - Briefly explain why, - Offer a safe, closest-possible alternative, - Keep tone kind and neutral. </refusals> <personalization> Adapt examples, stack choices, and explanations to the user’s stated preferences and skill level. If unknown, default to modern, widely used tools. </personalization>
-                            <finishing_touches>
-                            End with a small “Want me to tailor this further?” nudge when customization could help (e.g., specific stack, version, region).
-                            </finishing_touches>
+**Shipping Policy:**
+- Free shipping on all orders over $50
+- Standard shipping takes 5-7 business days
+- We ship to USA, Canada, and Mexico
+- Express shipping available for additional cost
 
-                            <identity> You are “Aurora”. Refer to yourself as Aurora when self-identifying. Do not claim real-world abilities or access you don’t have. </identity>
+**Return & Refund Policy:**
+- 30-day return policy from date of delivery
+- Items must be unused and in original packaging
+- Refunds processed within 5-7 business days after we receive the return
+- Return shipping cost is customer's responsibility unless item is defective
 
-            `
+**Support Hours:**
+- Monday to Friday: 9:00 AM - 6:00 PM EST
+- Weekend: Closed
+- Email: support@techstore.com
+- Phone: 1-800-TECH-STORE
+
+**Payment Methods:**
+- Visa, Mastercard, American Express
+- PayPal
+- Apple Pay
+- Google Pay
+
+**Warranty Information:**
+- All products come with 1-year manufacturer's warranty
+- Extended warranty plans available at checkout
+- Warranty covers manufacturing defects only
+
+Please answer customer questions clearly and concisely. Be friendly, professional, and helpful.
+If you don't know the answer to a question, politely say so and direct them to contact support.
+`;
+
+/**
+ * Generate AI response with conversation history (non-streaming)
+ * Used for REST API endpoint
+ */
+async function generateResponse(conversationHistory) {
+    try {
+        // Build messages array
+        const messages = [
+            new SystemMessage(FAQ_KNOWLEDGE),
+        ];
+
+        // Add conversation history
+        for (const msg of conversationHistory) {
+            if (msg.role === 'user') {
+                messages.push(new HumanMessage(msg.content));
+            } else if (msg.role === 'model' || msg.role === 'assistant') {
+                messages.push(new AIMessage(msg.content));
+            }
         }
-    })
 
-    return response.text
+        // Generate response
+        const response = await chatModel.invoke(messages);
+        return response.content;
 
+    } catch (error) {
+        console.error('AI Service Error:', error);
+        throw mapErrorToUserMessage(error);
+    }
 }
 
+/**
+ * Generate streaming AI response with conversation history
+ * Used for Socket.IO real-time chat
+ */
+async function generateStreamingResponse(conversationHistory, onChunk) {
+    try {
+        // Build messages array
+        const messages = [
+            new SystemMessage(FAQ_KNOWLEDGE),
+        ];
+
+        // Add conversation history
+        for (const msg of conversationHistory) {
+            if (msg.role === 'user') {
+                messages.push(new HumanMessage(msg.content));
+            } else if (msg.role === 'model' || msg.role === 'assistant') {
+                messages.push(new AIMessage(msg.content));
+            }
+        }
+
+        // Stream response
+        let fullResponse = '';
+        const stream = await chatModel.stream(messages);
+
+        for await (const chunk of stream) {
+            const content = chunk.content;
+            if (content) {
+                fullResponse += content;
+                onChunk(content); // Emit chunk via callback
+            }
+        }
+
+        return fullResponse;
+
+    } catch (error) {
+        console.error('AI Streaming Error:', error);
+        throw mapErrorToUserMessage(error);
+    }
+}
+
+/**
+ * Generate embeddings for text (for vector database)
+ */
 async function generateVector(content) {
-
-    const response = await ai.models.embedContent({
-        model: "gemini-embedding-001",
-        contents: content,
-        config: {
-            outputDimensionality: 768
-        }
-    })
-
-    return response.embeddings[ 0 ].values
-
+    try {
+        const embeddings = await embeddingsModel.embedDocuments([content]);
+        return embeddings[0]; // Return first (and only) embedding vector
+    } catch (error) {
+        console.error('Embedding Error:', error);
+        throw new Error('Failed to generate embeddings');
+    }
 }
 
+/**
+ * Map OpenAI errors to user-friendly messages
+ */
+function mapErrorToUserMessage(error) {
+    const errorMessage = error.message || '';
+    const errorCode = error.status || error.code;
+
+    // Rate limit error
+    if (errorCode === 429 || errorMessage.includes('rate limit')) {
+        return new Error('AI is currently busy. Please try again in a moment.');
+    }
+
+    // Authentication error
+    if (errorCode === 401 || errorMessage.includes('authentication') || errorMessage.includes('API key')) {
+        return new Error('AI service configuration error. Please contact support.');
+    }
+
+    // Timeout error
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+        return new Error('Request timed out. Please try again.');
+    }
+
+    // Model overload
+    if (errorCode === 503 || errorMessage.includes('overloaded') || errorMessage.includes('unavailable')) {
+        return new Error('AI service is temporarily unavailable. Please try again.');
+    }
+
+    // Generic error
+    return new Error('AI service encountered an error. Please try again.');
+}
 
 module.exports = {
     generateResponse,
+    generateStreamingResponse,
     generateVector
-}
+};
