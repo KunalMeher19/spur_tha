@@ -96,7 +96,7 @@ const Home = () => {
     setIsProcessingQueue(true);
     const chunk = chunkQueue[0];
 
-    // Add slight delay for readability (50ms per chunk)
+    // Add slight delay for readability (80ms per chunk)
     setTimeout(() => {
       setMessages((prevMessages) => {
         const streamingMsg = prevMessages.find(m => m.streaming);
@@ -106,6 +106,8 @@ const Home = () => {
             m.streaming ? { ...m, content: m.content + chunk } : m
           );
         } else {
+          // First chunk - hide typing indicator
+          setIsAITyping(false);
           return [...prevMessages, {
             type: 'ai',
             content: chunk,
@@ -118,7 +120,7 @@ const Home = () => {
       // Remove processed chunk and reset flag
       setChunkQueue(prev => prev.slice(1));
       setIsProcessingQueue(false);
-    }, 50); // 50ms delay between chunks
+    }, 80); // 80ms delay between chunks (increased from 50ms)
 
   }, [chunkQueue, isProcessingQueue]);
 
