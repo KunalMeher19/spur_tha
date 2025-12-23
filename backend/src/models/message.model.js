@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-
+const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
     user: {
@@ -14,9 +13,17 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    image: {
+        type: String,
+        required: false
+    },
+    prompt: {
+        type: String,
+        required: false
+    },
     role: {
         type: String,
-        enum: [ "user", "model", "system" ],
+        enum: ["user", "model"],
         default: "user"
     }
 }, {

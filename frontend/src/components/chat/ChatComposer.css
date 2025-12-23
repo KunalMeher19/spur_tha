@@ -1,3 +1,17 @@
+/* Send button row below input */
+
+
+.composer .send-btn.icon-btn {
+    margin: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    background: linear-gradient(180deg, #353537 80%, #232324 100%);
+    border: 1.5px solid #353537;
+    transition: box-shadow .15s, background .15s, border .15s;
+}
+
+.composer .send-btn.icon-btn:focus-visible {
+    box-shadow: 0 0 0 2px #3b82f6, 0 2px 8px rgba(0,0,0,0.10);
+}
 /* === ChatGPT-like bottom composer === */
 /* Centered, max-width column, floating pill with subtle border */
 
@@ -12,6 +26,7 @@
     backdrop-filter: blur(12px);
 }
 
+
 .composer-surface {
     display: flex;
     align-items: flex-end;
@@ -25,6 +40,77 @@
     padding: 12px 14px 14px 18px; /* top tighter than bottom for hint room */
     position: relative;
     transition: border-color .15s, background-color .15s, box-shadow .15s;
+    cursor: text; /* indicate typing area across whole surface */
+}
+
+.composer-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border-radius: 999px;
+    padding: 0;
+    box-shadow: none;
+    width: auto;
+    margin-bottom: 2px;
+}
+
+.composer-mode-toggle-top {
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+}
+.composer-field-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+.mode-label {
+    font-size: 11px;
+    color: var(--color-text-muted, #8d8d91);
+    font-weight: 500;
+    transition: color .15s;
+    padding: 0 2px;
+}
+.mode-label.active {
+    color: var(--color-primary, #3b82f6);
+}
+.mode-toggle-switch {
+    width: 28px;
+    height: 16px;
+    background: var(--color-border, #3a3a3c);
+    border: none;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background .2s;
+    outline: none;
+    margin: 0 2px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    min-width: 28px;
+}
+.mode-toggle-switch .toggle-thumb {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--color-surface, #fff);
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+    transition: left .2s, background .2s;
+}
+.mode-toggle-switch.thinking {
+    background: var(--color-primary, #3b82f6);
+}
+.mode-toggle-switch.thinking .toggle-thumb {
+    left: 14px;
+    background: var(--color-primary-hover, #2563eb);
 }
 
 .composer-surface:focus-within {
@@ -35,8 +121,23 @@
 
 .composer-field { flex: 1; position: relative; }
 
-.composer-input {
+.composer-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* wrapper so hint can flow beneath the textarea without absolute positioning conflicts */
+.input-with-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
+}
+
+.composer-input {
+    flex: 1 1 auto; /* grow to fill available space */
+    min-width: 0; /* allow flex children to shrink properly */
     resize: none;
     border: 0;
     outline: none;
@@ -45,38 +146,21 @@
     font: inherit;
     line-height: 1.5;
     max-height: 260px;
-    padding: 0 0 18px 0; /* space for hint overlay */
+    padding: 0; /* hint no longer needs overlay padding */
 }
 
 .composer-input::placeholder { color: #8d8d91; }
 
-.composer-footer {
-    position: absolute;
-    left: 2px;
-    right: 2px;
-    bottom: 2px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.composer-hint {
+    margin-top: 6px;
+    padding-left: 6px;
     font-size: 11px;
-    pointer-events: none;
+    color: #5f6165;
+    pointer-events: none; /* allow clicks through to surface */
     user-select: none;
     line-height: 1.1;
     font-weight: 500;
-}
-
-.composer-hint {
-    color: #5f6165;
-}
-
-.char-counter {
-    color: #5f6165;
-    font-variant-numeric: tabular-nums;
-}
-
-.char-counter.over-limit {
-    color: #ff4444;
-    font-weight: 600;
+    align-self: flex-start; /* ensure it hugs the left edge of the textarea */
 }
 
 /* Icon-only circular send button */
@@ -103,6 +187,99 @@
 
 .send-icon { display:inline-flex; }
 
+/* Attach / camera button */
+.attach-btn.icon-btn {
+    --size: 36px;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #3a3a3c;
+    color: #f1f1f2;
+    cursor: pointer;
+    margin-right: 6px;
+}
+.attach-icon { font-size: 18px; line-height: 1; }
+
+/* Attach menu popup */
+.attach-container { position: relative; display: inline-block; }
+.attach-menu {
+    position: absolute;
+    bottom: 48px;
+    left: 0;
+    min-width: 160px;
+    background: #161616;
+    border: 1px solid #2f2f30;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    padding: 6px;
+    z-index: 40;
+}
+.attach-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: #eaeaea;
+    cursor: pointer;
+    font-weight: 600;
+    border-radius: 8px;
+}
+.attach-menu-item:hover { background: rgba(255,255,255,0.04); }
+
+
+.composer-image-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+}
+.composer-image-preview img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.composer-image-preview button {
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.upload-progress-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    border-radius: 8px;
+}
+.upload-progress-bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--color-primary, #3b82f6);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+.upload-progress-text {
+    color: #fff;
+    font-weight: 600;
+    z-index: 2;
+}
+
 /* Slide arrow a tad */
 .send-btn.icon-btn:hover:not(:disabled) .send-icon { transform: translateX(1px); }
 .send-icon svg { transition: transform .15s; }
@@ -118,6 +295,7 @@
     .composer-hint { display:none; }
     .composer-input { padding-bottom:0; }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
     .send-btn.icon-btn, .send-icon svg { transition: none; }

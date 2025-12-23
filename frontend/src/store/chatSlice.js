@@ -1,7 +1,7 @@
 import { createSlice, nanoid } from '@reduxjs/toolkit';
 
 // helpers
-const createEmptyChat = (title) => ({ id: nanoid(), title: title || 'New Chat', messages: [] });
+const createEmptyChat = (title) => ({ _id: nanoid(), title: title || 'New Chat', messages: [] });
 
 const chatSlice = createSlice({
     name: 'chat',
@@ -16,13 +16,13 @@ const chatSlice = createSlice({
             if (state.chats.length === 0) {
                 const chat = createEmptyChat();
                 state.chats.unshift(chat);
-                state.activeChatId = chat.id;
+                state.activeChatId = chat._id;
             }
         },
         startNewChat: {
             reducer(state, action) {
-                const { _id, title } = action.payload;
-                state.chats.unshift({ _id, title: title || 'New Chat', messages: [] });
+                const { _id, title, isTemp } = action.payload;
+                state.chats.unshift({ _id, title: title || 'New Chat', messages: [], ...(typeof isTemp === 'boolean' ? { isTemp } : {}) });
                 state.activeChatId = _id;
             }
         },
@@ -44,7 +44,7 @@ const chatSlice = createSlice({
         addUserMessage: {
             reducer(state, action) {
                 const { chatId, message } = action.payload;
-                const chat = state.chats.find(c => c.id === chatId);
+                const chat = state.chats.find(c => c._id === chatId);
                 if (!chat) return;
                 if (chat.messages.length === 0) {
                     chat.title = message.content.slice(0, 40) + (message.content.length > 40 ? '…' : '');
@@ -58,12 +58,20 @@ const chatSlice = createSlice({
         addAIMessage: {
             reducer(state, action) {
                 const { chatId, message } = action.payload;
-                const chat = state.chats.find(c => c.id === chatId);
+                const chat = state.chats.find(c => c._id === chatId);
                 if (!chat) return;
                 chat.messages.push(message);
             },
             prepare(chatId, content, error = false) {
                 return { payload: { chatId, message: { id: nanoid(), role: 'ai', content, ts: Date.now(), ...(error ? { error: true } : {}) } } };
+            }
+        },
+        updateChatTitle(state, action) {
+            const { chatId, title } = action.payload;
+            const chat = state.chats.find(c => c._id === chatId);
+            if (chat && title) {
+                chat.title = title;
+                if (chat.isTemp) chat.isTemp = false;
             }
         }
     }
@@ -78,7 +86,8 @@ export const {
     sendingFinished,
     addUserMessage,
     addAIMessage,
-    setChats
+    setChats,
+    updateChatTitle
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

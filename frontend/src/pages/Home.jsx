@@ -1,234 +1,366 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { io } from "socket.io-client";
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import Cookies from 'js-cookie';
 import ChatMobileBar from '../components/chat/ChatMobileBar.jsx';
 import ChatSidebar from '../components/chat/ChatSidebar.jsx';
 import ChatMessages from '../components/chat/ChatMessages.jsx';
 import ChatComposer from '../components/chat/ChatComposer.jsx';
+import NewChatPopup from '../components/chat/NewChatPopup.jsx';
 import '../components/chat/ChatLayout.css';
-import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios';
 import {
   startNewChat,
   selectChat,
   setInput,
   sendingStarted,
   sendingFinished,
-  setChats
+  setChats,
+  updateChatTitle
 } from '../store/chatSlice.js';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+import { processImage } from '../utils/imageUtils.js';
 
 const Home = () => {
+  const navigate = useNavigate();
+  // Redux state
   const dispatch = useDispatch();
   const chats = useSelector(state => state.chat.chats);
   const activeChatId = useSelector(state => state.chat.activeChatId);
   const input = useSelector(state => state.chat.input);
   const isSending = useSelector(state => state.chat.isSending);
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = Cookies.get('token');
+      if (!token) {
+        navigate('/login');
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // Local state
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 960);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 960);
   const [socket, setSocket] = useState(null);
+  const [isNewChatPopupOpen, setIsNewChatPopupOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [streamingMessage, setStreamingMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [error, setError] = useState(null);
+  const [composerMode, setComposerMode] = useState('normal');
 
-  const activeChat = chats.find(c => c.id === activeChatId) || null;
+  useEffect(() => {
+    // Handle window resize
+    const handleResize = () => {
+      const mobile = window.innerWidth < 960;
+      setIsMobile(mobile);
+      // On desktop, always show sidebar. On mobile, hide it initially
+      setSidebarOpen(!mobile);
+    };
 
-  const handleNewChat = async () => {
-    // Prompt user for title of new chat
-    let title = window.prompt('Enter a title for the new chat:', '');
-    if (title) title = title.trim();
-    if (!title) return;
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
+  const handleNewChat = () => {
+    setIsNewChatPopupOpen(true);
+  }
+
+  const createNewChat = async (title) => {
     try {
-      const response = await axios.post(`${API_URL}/api/chat`, {
+      const response = await axios.post("https://aura-x4bd.onrender.com/api/chat", {
         title
       }, {
         withCredentials: true
       });
-
       getMessages(response.data.chat._id);
       dispatch(startNewChat(response.data.chat));
       setSidebarOpen(false);
-    } catch (err) {
-      console.error('Error creating chat:', err);
-      showError('Failed to create new chat');
+      toast.success('New chat created successfully!');
+    } catch {
+      toast.error('Failed to create new chat');
     }
-  };
+  }
 
-  // Show error toast
-  const showError = (message) => {
-    setError(message);
-    setTimeout(() => setError(null), 5000);
-  };
+  const _activeChat = chats.find(c => c.id === activeChatId) || null;
 
-  // Initialize: Fetch chats and setup Socket.IO
   useEffect(() => {
-    // Fetch all chats
-    axios.get(`${API_URL}/api/chat`, { withCredentials: true })
+    // Fetch chats
+    axios.get("https://aura-x4bd.onrender.com/api/chat", { withCredentials: true })
       .then(response => {
-        dispatch(setChats(response.data.chats.reverse()));
+        // Server returns newest first; we keep same order, ensure selecting the first chat automatically
+        const chatsResp = response.data.chats;
+        dispatch(setChats(chatsResp));
+        if (chatsResp && chatsResp.length > 0) {
+          const firstChat = chatsResp[0];
+          dispatch(selectChat(firstChat._id));
+          getMessages(firstChat._id);
+        }
       })
-      .catch(err => {
-        console.error('Error fetching chats:', err);
-        showError('Failed to load chats');
+      .catch(() => {
+        toast.error('Failed to load chats');
       });
 
-    // Setup Socket.IO connection
-    const tempSocket = io(WS_URL, {
+    // Setup socket
+    const tempSocket = io("https://aura-x4bd.onrender.com", {
       withCredentials: true,
     });
 
-    // Handle complete AI response
-    tempSocket.on("ai-response", (messagePayload) => {
-      console.log("Received AI response:", messagePayload);
+    tempSocket.on("connect", () => {
+      toast.success('Connected to chat server');
+    });
 
+    tempSocket.on("connect_error", () => {
+      toast.error('Failed to connect to chat server');
+    });
+
+    tempSocket.on("ai-response", (messagePayload) => {
+      // If server echoes a previewId and/or imageData, update the corresponding preview message
+      if (messagePayload.previewId) {
+        setMessages(prev => prev.map(m => m.id === messagePayload.previewId ? {
+          ...m,
+          image: messagePayload.imageData || m.imageData,
+          imageData: undefined,
+          uploadProgress: 0,
+          preview: false
+        } : m));
+      }
+
+      // Append AI response content
       setMessages((prevMessages) => [...prevMessages, {
         type: 'ai',
         content: messagePayload.content
       }]);
 
-      setStreamingMessage(''); // Clear streaming state
-      setIsTyping(false);
+      // If server indicates the chat title changed (e.g., from Temp to generated title), update local state
+      if (messagePayload.title && messagePayload.chat) {
+        dispatch(updateChatTitle({ chatId: messagePayload.chat, title: messagePayload.title }));
+      }
+
+      // clear any sending state
       dispatch(sendingFinished());
     });
 
-    // Handle streaming chunks
-    tempSocket.on("ai-stream-chunk", (chunkPayload) => {
-      console.log("Received chunk:", chunkPayload.chunk);
-
-      setStreamingMessage((prev) => prev + chunkPayload.chunk);
+    // When the server finishes uploading the image, it will emit this event
+    tempSocket.on('image-uploaded', (payload) => {
+      // Replace the preview image with hosted URL and clear progress flags
+      setMessages(prev => prev.map(m => (
+        payload.previewId && m.id === payload.previewId
+          ? { ...m, image: payload.imageData, imageData: undefined, uploadProgress: 0, preview: false }
+          : m
+      )));
     });
 
-    // Handle typing indicator
-    tempSocket.on("ai-typing", (typing) => {
-      console.log("AI typing:", typing);
-      setIsTyping(typing);
+    tempSocket.on('image-upload-error', (payload) => {
+      // Mark preview as failed; user can retry
+      toast.error(payload.error || 'Failed to upload image to server');
+      setMessages(prev => prev.map(m => (
+        payload.previewId && m.id === payload.previewId
+          ? { ...m, uploadProgress: 0, preview: false, uploadError: true }
+          : m
+      )));
     });
 
-    // Handle errors
-    tempSocket.on("ai-error", (errorPayload) => {
-      console.error("AI error:", errorPayload);
-      showError(errorPayload.message);
-      setIsTyping(false);
-      setStreamingMessage('');
+    tempSocket.on("error", (err) => {
+      toast.error(err.message || 'An error occurred with the chat');
       dispatch(sendingFinished());
-    });
-
-    // Connection error
-    tempSocket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err);
-      showError('Connection error. Please check your internet.');
     });
 
     setSocket(tempSocket);
 
-    // Cleanup on unmount
+    // Cleanup
     return () => {
       tempSocket.disconnect();
     };
-  }, []);
+  }, [dispatch]);
 
-  const sendMessage = async () => {
+  const sendMessage = async (maybeUpload) => {
+    // Handle image preview payload from composer (immediate local preview)
+    if (maybeUpload && maybeUpload.isUploadPreview) {
+      // create a stable local id so we can update this message during upload
+      const previewId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const previewMsg = { id: previewId, type: 'user', content: maybeUpload.prompt || 'Image', imageData: maybeUpload.imageData, prompt: maybeUpload.prompt, preview: true, uploadProgress: 0 };
+      setMessages(prev => [...prev, previewMsg]);
+      return;
+    }
+
+    // If composer provided a File to upload (final send), upload it now with the prompt
+    if (maybeUpload && maybeUpload.file) {
+      if (!activeChatId || isSending) return;
+
+      // Find or create preview message
+      let previewId = null;
+      const found = messages.find(m => m.preview && (m.imageData === maybeUpload.imageData || m.prompt === maybeUpload.prompt));
+      if (found && found.id) previewId = found.id;
+
+      if (!previewId) {
+        previewId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const previewMsg = { id: previewId, type: 'user', content: maybeUpload.prompt || 'Image', imageData: maybeUpload.imageData, prompt: maybeUpload.prompt, preview: true, uploadProgress: 0 };
+        setMessages(prev => [...prev, previewMsg]);
+      }
+
+      dispatch(sendingStarted());
+      dispatch(setInput(''));
+
+      try {
+        // Normalize and compress image on client-side
+        // This handles HEIC -> JPEG conversion and resizing to <1920px
+        const dataUrl = await processImage(maybeUpload.file, {
+          maxDimension: 1920,
+          quality: 0.7
+        });
+
+        // Simulate upload progress (since conversion is fast, just show a quick animation)
+        setMessages(prev => prev.map(m => m.id === previewId ? { ...m, uploadProgress: 50 } : m));
+        setTimeout(() => {
+          setMessages(prev => prev.map(m => m.id === previewId ? { ...m, uploadProgress: 100 } : m));
+        }, 150);
+
+        // Send over socket as image payload. Include previewId so server can correlate.
+        if (!socket?.connected) throw new Error('Not connected to socket');
+
+        // For image uploads we emit a dedicated event to avoid mixing image payloads with text-only listeners
+        socket.emit('ai-image-message', {
+          chat: activeChatId,
+          content: maybeUpload.prompt || '',
+          mode: composerMode,
+          image: dataUrl,
+          previewId
+        });
+
+        // Let server respond via ai-response handler which will clear preview
+      } catch (err) {
+        toast.error('Failed to process/send image');
+        console.error(err);
+        setMessages(prev => prev.map(m => m.id === previewId ? { ...m, uploadProgress: 0, preview: false, uploadError: true } : m));
+        dispatch(sendingFinished());
+      }
+
+      return;
+    }
+
     const trimmed = input.trim();
-    console.log("Sending message:", trimmed);
+    if (!trimmed || !activeChatId || isSending) return;
 
-    // Validation
-    if (!trimmed) {
-      showError('Message cannot be empty');
+    if (!socket?.connected) {
+      toast.error('Not connected to chat server');
       return;
     }
-
-    if (trimmed.length > 2000) {
-      showError('Message too long (max 2000 characters)');
-      return;
-    }
-
-    if (!activeChatId || isSending) return;
 
     dispatch(sendingStarted());
 
     const newMessages = [...messages, {
       type: 'user',
-      content: trimmed
+      content: trimmed,
+      mode: composerMode
     }];
 
-    console.log("New messages:", newMessages);
+    try {
+      setMessages(newMessages);
+      dispatch(setInput(''));
 
-    setMessages(newMessages);
-    dispatch(setInput(''));
-    setStreamingMessage(''); // Reset streaming message
+      socket.emit("ai-message", {
+        chat: activeChatId,
+        content: trimmed,
+        mode: composerMode
+      });
 
-    socket.emit("ai-message", {
-      chat: activeChatId,
-      content: trimmed
-    });
+      // Auto-close sidebar on mobile after sending message
+      if (isMobile) {
+        setSidebarOpen(false);
+      }
+    } catch {
+      toast.error('Failed to send message');
+      dispatch(sendingFinished());
+    }
+  }
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setSidebarOpen(!sidebarOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const handleSelectChat = (chatId) => {
+    dispatch(selectChat(chatId));
+    // Auto-close sidebar on mobile when selecting a chat
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   const getMessages = async (chatId) => {
     try {
-      const response = await axios.get(`${API_URL}/api/chat/messages/${chatId}`, {
-        withCredentials: true
-      });
-
-      console.log("Fetched messages:", response.data.messages);
-
+      const response = await axios.get(`https://aura-x4bd.onrender.com/api/chat/messages/${chatId}`, { withCredentials: true });
       setMessages(response.data.messages.map(m => ({
         type: m.role === 'user' ? 'user' : 'ai',
-        content: m.content
+        content: m.content,
+        image: m.image || undefined,
+        prompt: m.prompt || undefined
       })));
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      showError('Failed to load messages');
+    } catch {
+      toast.error('Failed to fetch messages');
     }
-  };
+  }
+
+  const deleteChat = async (chatId) => {
+    try {
+      dispatch(setChats(chats.filter(chat => chat._id !== chatId)));
+      await axios.delete(`https://aura-x4bd.onrender.com/api/chat/messages/${chatId}`, { withCredentials: true });
+      toast.success('Chat deleted successfully');
+      if (activeChatId === chatId) {
+        dispatch(selectChat(null));
+        setMessages([]);
+      }
+    } catch {
+      toast.error('Failed to delete chat');
+    }
+  }
+
 
   return (
-    <div className="chat-layout minimal">
-      {/* Error toast */}
-      {error && (
-        <div className="error-toast" role="alert">
-          {error}
-        </div>
-      )}
-
+    <div className={`chat-layout minimal ${isMobile ? 'mobile' : ''}`}>
       <ChatMobileBar
-        onToggleSidebar={() => setSidebarOpen(o => !o)}
+        onToggleSidebar={toggleSidebar}
         onNewChat={handleNewChat}
       />
       <ChatSidebar
         chats={chats}
         activeChatId={activeChatId}
         onSelectChat={(id) => {
-          dispatch(selectChat(id));
-          setSidebarOpen(false);
+          handleSelectChat(id);
           getMessages(id);
         }}
         onNewChat={handleNewChat}
+        onToggleSidebar={toggleSidebar}
         open={sidebarOpen}
+        isCollapsed={!isMobile && sidebarCollapsed}
+        deleteChat={deleteChat}
       />
       <main className="chat-main" role="main">
         {messages.length === 0 && (
           <div className="chat-welcome" aria-hidden="true">
-            <div className="chip">TechStore Support</div>
-            <h1>AI Customer Support</h1>
-            <p>Ask about our shipping, returns, warranty, or any other questions. Your conversations are saved in the sidebar.</p>
+            <div className="chip">Early Preview</div>
+            <h1>Aura</h1>
+            <p>Ask anything. Paste text, brainstorm ideas, or get quick explanations. Your chats stay in the sidebar so you can pick up where you left off.</p>
+            <p>Start by creating a new chat from top.</p>
           </div>
         )}
-        <ChatMessages
-          messages={messages}
-          isSending={isSending || isTyping}
-          streamingMessage={streamingMessage}
-          isTyping={isTyping}
-        />
-        {activeChatId &&
+        <ChatMessages messages={messages} isSending={isSending} />
+        {
+          activeChatId &&
           <ChatComposer
             input={input}
             setInput={(v) => dispatch(setInput(v))}
             onSend={sendMessage}
-            isSending={isSending || isTyping}
-          />
-        }
+            isSending={isSending}
+            mode={composerMode}
+            onModeChange={setComposerMode}
+          />}
       </main>
       {sidebarOpen && (
         <button
@@ -237,6 +369,11 @@ const Home = () => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+      <NewChatPopup
+        isOpen={isNewChatPopupOpen}
+        onClose={() => setIsNewChatPopupOpen(false)}
+        onCreateChat={createNewChat}
+      />
     </div>
   );
 };
