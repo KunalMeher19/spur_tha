@@ -51,6 +51,8 @@ const Home = () => {
   const [messages, setMessages] = useState([]);
   const [composerMode, setComposerMode] = useState('normal');
   const [isAITyping, setIsAITyping] = useState(false);  // Typing indicator state
+  const [chunkQueue, setChunkQueue] = useState([]); // Queue for throttled chunks
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
 
   useEffect(() => {
     // Handle window resize
@@ -87,6 +89,39 @@ const Home = () => {
 
   const _activeChat = chats.find(c => c.id === activeChatId) || null;
 
+  // Process chunk queue with throttle delay for smoother display
+  useEffect(() => {
+    if (chunkQueue.length === 0 || isProcessingQueue) return;
+
+    setIsProcessingQueue(true);
+    const chunk = chunkQueue[0];
+
+    // Add slight delay for readability (50ms per chunk)
+    setTimeout(() => {
+      setMessages((prevMessages) => {
+        const streamingMsg = prevMessages.find(m => m.streaming);
+
+        if (streamingMsg) {
+          return prevMessages.map(m =>
+            m.streaming ? { ...m, content: m.content + chunk } : m
+          );
+        } else {
+          return [...prevMessages, {
+            type: 'ai',
+            content: chunk,
+            streaming: true,
+            id: `stream_${Date.now()}`
+          }];
+        }
+      });
+
+      // Remove processed chunk and reset flag
+      setChunkQueue(prev => prev.slice(1));
+      setIsProcessingQueue(false);
+    }, 50); // 50ms delay between chunks
+
+  }, [chunkQueue, isProcessingQueue]);
+
   useEffect(() => {
     // Fetch chats
     axios.get(`${import.meta.env.VITE_API_URL}/api/chat`, { withCredentials: true })
@@ -120,28 +155,9 @@ const Home = () => {
     // Add streaming support handlers
     tempSocket.on('ai-stream-chunk', (payload) => {
       const { chunk } = payload;
-      // Note: We don't check activeChatId here because of closure staleness
-      // The backend only sends chunks for the current active chat anyway
+      // Queue chunks for throttled display (50ms delay)
+      setChunkQueue(prev => [...prev, chunk]);
 
-      setMessages((prevMessages) => {
-        // Check if we're already streaming a message
-        const streamingMsg = prevMessages.find(m => m.streaming);
-
-        if (streamingMsg) {
-          // Append chunk to existing streaming message
-          return prevMessages.map(m =>
-            m.streaming ? { ...m, content: m.content + chunk } : m
-          );
-        } else {
-          // Create new streaming message
-          return [...prevMessages, {
-            type: 'ai',
-            content: chunk,
-            streaming: true,  // Mark as streaming
-            id: `stream_${Date.now()}`
-          }];
-        }
-      });
     });
 
     tempSocket.on('ai-typing', (isTyping) => {
