@@ -50,16 +50,33 @@
 
 .composer-input::placeholder { color: #8d8d91; }
 
-.composer-hint {
+.composer-footer {
     position: absolute;
     left: 2px;
+    right: 2px;
     bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 11px;
-    color: #5f6165;
     pointer-events: none;
     user-select: none;
     line-height: 1.1;
     font-weight: 500;
+}
+
+.composer-hint {
+    color: #5f6165;
+}
+
+.char-counter {
+    color: #5f6165;
+    font-variant-numeric: tabular-nums;
+}
+
+.char-counter.over-limit {
+    color: #ff4444;
+    font-weight: 600;
 }
 
 /* Icon-only circular send button */
