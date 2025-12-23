@@ -86,7 +86,7 @@ export function initSocketServer(httpServer: HttpServer): void {
                 socket.emit('ai-typing', true);
 
                 // Save user message
-                const userMessage = await messageModel.create({
+                await messageModel.create({
                     chat: messagePayload.chat,
                     user: user._id,
                     content: messagePayload.content.trim(),
@@ -156,3 +156,4 @@ export function initSocketServer(httpServer: HttpServer): void {
 }
 
 export default initSocketServer;
+

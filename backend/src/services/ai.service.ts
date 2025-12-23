@@ -1,5 +1,4 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 
 // FAQ Knowledge Base (Assignment Requirement #4)

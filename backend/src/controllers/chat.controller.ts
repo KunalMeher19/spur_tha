@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import chatModel from '../models/chat.model';
 import messageModel from '../models/message.model';
 import { AuthRequest } from '../types/auth.types';

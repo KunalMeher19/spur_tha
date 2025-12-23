@@ -19,17 +19,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.json({ status: 'ok', message: 'Spur AI Chat API is running' });
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Error:', err);
     res.status(500).json({ message: 'Internal server error' });
 });
