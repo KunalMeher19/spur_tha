@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// UPDATED: Use environment variable or localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const Login = () => {
-    const [form, setForm] = useState({ email: '', password: '' });
-    const [submitting, setSubmitting] = useState(false);
+    const [ form, setForm ] = useState({ email: '', password: '' });
+    const [ submitting, setSubmitting ] = useState(false);
     const navigate = useNavigate();
-
+    
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -23,7 +21,7 @@ const Login = () => {
 
         console.log(form);
 
-        axios.post(`${API_BASE_URL}/api/auth/login`, {
+        axios.post("https://cohort-1-project-chat-gpt.onrender.com/api/auth/login", {
             email: form.email,
             password: form.password
         },
@@ -35,7 +33,6 @@ const Login = () => {
             navigate("/");
         }).catch((err) => {
             console.error(err);
-            alert(err.response?.data?.message || 'Login failed. Please try again.');
         }).finally(() => {
             setSubmitting(false);
         });
@@ -52,11 +49,11 @@ const Login = () => {
                 <form className="auth-form" onSubmit={handleSubmit} noValidate>
                     <div className="field-group">
                         <label htmlFor="login-email">Email</label>
-                        <input id="login-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" onChange={handleChange} required />
+                        <input id="login-email" name="email" type="email" autoComplete="email" placeholder="you@example.com"  onChange={handleChange} required />
                     </div>
                     <div className="field-group">
                         <label htmlFor="login-password">Password</label>
-                        <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password" onChange={handleChange} required />
+                        <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password"  onChange={handleChange} required />
                     </div>
                     <button type="submit" className="primary-btn" disabled={submitting}>
                         {submitting ? 'Signing in...' : 'Sign in'}

@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// UPDATED: Use environment variable or localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 const Register = () => {
-    const [form, setForm] = useState({ email: '', firstname: '', lastname: '', password: '' });
-    const [submitting, setSubmitting] = useState(false);
+    const [ form, setForm ] = useState({ email: '', firstname: '', lastname: '', password: '' });
+    const [ submitting, setSubmitting ] = useState(false);
     const navigate = useNavigate();
 
 
     function handleChange(e) {
         const { name, value } = e.target;
-        setForm(f => ({ ...f, [name]: value }));
+        setForm(f => ({ ...f, [ name ]: value }));
     }
 
     async function handleSubmit(e) {
@@ -21,20 +18,28 @@ const Register = () => {
         setSubmitting(true);
         console.log(form);
 
-        try {
-            const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
-                email: form.email,
-                name: `${form.firstname} ${form.lastname}`, // UPDATED: Match new backend schema
-                password: form.password
-            }, {
-                withCredentials: true
-            });
-
-            console.log(response);
+        axios.post("https://cohort-1-project-chat-gpt.onrender.com/api/auth/register", {
+            email: form.email,
+            fullName: {
+                firstName: form.firstname,
+                lastName: form.lastname
+            },
+            password: form.password
+        }, {
+            withCredentials: true
+        }).then((res) => {
+            console.log(res);
             navigate("/");
+        }).catch((err) => {
+            console.error(err);
+            alert('Registration failed (placeholder)');
+        })
+
+        try {
+            // Placeholder: integrate real registration logic / API call.
+
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || 'Registration failed. Please try again.');
         } finally {
             setSubmitting(false);
         }
