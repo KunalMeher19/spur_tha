@@ -1,6 +1,6 @@
 # Spur AI Live Chat Agent
 
-A modern AI-powered customer support chat application built with **Node.js + TypeScript, LangChain, OpenAI, MongoDB, Socket.IO, and React**. Features real-time messaging, intelligent FAQ responses for a fictional TechStore, comprehensive error handling, and a beautiful user interface.
+A modern AI-powered customer support chat application built with **Node.js, LangChain, OpenAI, MongoDB, Socket.IO, and React**. Features real-time streaming responses, intelligent FAQ answers for TechStore, comprehensive error handling, and a beautiful user interface.
 
 ## 🚀 Live Demo
 
@@ -9,13 +9,15 @@ A modern AI-powered customer support chat application built with **Node.js + Typ
 ## ✨ Features
 
 ### Core Functionality
-- ✅ **Real-time AI Chat** - Instant responses powered by OpenAI (gpt-4o-mini) via LangChain
+- ✅ **Real-time AI Chat** - Streaming responses powered by OpenAI (gpt-4o-mini) via LangChain
+- ✅ **Streaming Responses** - Word-by-word typewriter effect for AI messages
 - ✅ **FAQ Knowledge Base** - Pre-seeded with TechStore policies (shipping, returns, warranty, support)
 - ✅ **Conversation Persistence** - All chats saved to MongoDB, resume anytime
 - ✅ **Session Management** - Multiple chat sessions per user, sidebar navigation
-- ✅ **Input Validation** - Empty message blocking, 2000 character limit
+- ✅ **Input Validation** - Empty message blocking, 2000 character limit with counter
 - ✅ **Typing Indicator** - "Agent is typing..." with animated dots
-- ✅ **Error Handling** - Graceful LLM timeouts, rate limits, API failures
+- ✅ **Error Handling** - Graceful LLM timeouts, rate limits, API failures with user-friendly messages
+- ✅ **REST API Endpoint** - POST /api/chat/message for assignment compliance
 - ✅ **Authentication** - JWT-based user auth with HTTP-only cookies
 
 ### Tech Stack
@@ -34,21 +36,21 @@ A modern AI-powered customer support chat application built with **Node.js + Typ
 
 ```
 spur_/
-├── backend/                # TypeScript backend
+├── Backend/                # Node.js backend
 │   ├── src/
 │   │   ├── controllers/    # Request handlers
 │   │   ├── models/         # Mongoose schemas
 │   │   ├── routes/         # API endpoints
 │   │   ├── services/       # LangChain AI service
-│   │   ├── sockets/        # Socket.IO server
-│   │   ├── middleware/     # Auth middleware
+│   │   ├── sockets/        # Socket.IO server (with streaming)
+│   │   ├── middlewares/    # Auth middleware
 │   │   ├── db/             # Database connection
-│   │   └── server.ts       # Entry point
+│   │   └── app.js          # Express app
+│   ├── server.js           # Entry point
 │   ├── package.json
-│   ├── tsconfig.json
 │   └── .env.example
 │
-└── frontend/               # React frontend
+└── Frontend/               # React frontend
     ├── src/
     │   ├── components/
     │   │   └── chat/       # Chat UI components
@@ -164,9 +166,10 @@ Returns: { reply, sessionId }
 socket.emit('ai-message', { chat: chatId, content: message })
 
 // Server → Client
-socket.on('ai-response', { content, chat })
-socket.on('ai-typing', isTyping)      // true/false
-socket.on('ai-error', { message })
+socket.on('ai-stream-chunk', { chunk, chat })  // Real-time streaming chunks
+socket.on('ai-response', { content, chat })     // Complete message
+socket.on('ai-typing', isTyping)                // true/false
+socket.on('ai-error', { message })              // Error messages
 ```
 
 ---
@@ -194,15 +197,17 @@ Chat { user, title, lastActivity }
 Message { user, chat, content, role: 'user' | 'model' | 'system' }
 ```
 
-### Socket.IO Flow
+### Socket.IO Flow (Streaming)
 1. User sends message → `ai-message` event
-2. Backend validates input (empty/length)
+2. Backend validates input (empty message, 2000 char limit)
 3. Emit `ai-typing: true`
-4. Fetch last 10 messages from DB
-5. Call LangChain with history + user message
-6. Emit `ai-response` with reply
-7. Emit `ai-typing: false`
-8. Save message to MongoDB
+4. Fetch last 20 messages from DB
+5. Call LangChain streaming API with conversation history
+6. **Stream chunks in real-time** → emit `ai-stream-chunk` events
+7. After streaming completes → emit `ai-response` with full text
+8. Emit `ai-typing: false`
+9. Save both user and AI messages to MongoDB
+10. Generate embeddings and store in Pinecone (optional)
 
 ---
 
@@ -275,8 +280,8 @@ Message { user, chat, content, role: 'user' | 'model' | 'system' }
 ## ⏱️ If I Had More Time...
 
 ### Features
-- [ ] Streaming AI responses (word-by-word)
-- [ ] Vector database (Pinecone) for semantic search
+- [x] Streaming AI responses (word-by-word) **✓ DONE**
+- [x] Vector database (Pinecone) for semantic search **✓ Already integrated**
 - [ ] Redis caching for frequent FAQs
 - [ ] Message editing/deletion
 - [ ] Chat export (PDF/JSON)
