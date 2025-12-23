@@ -10,25 +10,28 @@ A modern AI-powered customer support chat application built with **Node.js, Lang
 
 ### Core Functionality
 - ✅ **Real-time AI Chat** - Streaming responses powered by OpenAI (gpt-4o-mini) via LangChain
-- ✅ **Streaming Responses** - Word-by-word typewriter effect for AI messages
-- ✅ **FAQ Knowledge Base** - Pre-seeded with TechStore policies (shipping, returns, warranty, support)
+- ✅ **Streaming Responses** - Smooth word-by-word display with 100ms throttle for comfortable reading
+- ✅ **FAQ Knowledge Base** - Pre-seeded with TechStore policies (shipping, returns, warranty, support, payment)
 - ✅ **Conversation Persistence** - All chats saved to MongoDB, resume anytime
 - ✅ **Session Management** - Multiple chat sessions per user, sidebar navigation
-- ✅ **Input Validation** - Empty message blocking, 2000 character limit with counter
-- ✅ **Typing Indicator** - "Agent is typing..." with animated dots
+- ✅ **Input Validation** - Character counter (2000 limit), empty message blocking
+- ✅ **Typing Indicator** - "AI is typing..." disappears on first chunk
 - ✅ **Error Handling** - Graceful LLM timeouts, rate limits, API failures with user-friendly messages
 - ✅ **REST API Endpoint** - POST /api/chat/message for assignment compliance
 - ✅ **Authentication** - JWT-based user auth with HTTP-only cookies
+- ✅ **Image Support** - Upload images with prompts, camera/gallery integration
+- ✅ **Thinking Mode** - Advanced reasoning with o3-mini model
 
 ### Tech Stack
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Node.js + TypeScript, Express.js |
+| **Backend** | Node.js, Express.js |
 | **AI** | OpenAI GPT-4o-mini + LangChain |
 | **Database** | MongoDB + Mongoose ORM |
+| **Vector DB** | Pinecone (conversation memory) |
 | **Real-time** | Socket.IO |
 | **Frontend** | React 19 + Vite, Redux Toolkit |
-| **Validation** | Zod (backend-ready) |
+| **Image CDN** | ImageKit |
 
 ---
 
@@ -39,298 +42,393 @@ spur_/
 ├── Backend/                # Node.js backend
 │   ├── src/
 │   │   ├── controllers/    # Request handlers
+│   │   │   ├── auth.controllers.js
+│   │   │   ├── chat.controllers.js
+│   │   │   └── chatMessage.controller.js  # REST API
 │   │   ├── models/         # Mongoose schemas
 │   │   ├── routes/         # API endpoints
-│   │   ├── services/       # LangChain AI service
-│   │   ├── sockets/        # Socket.IO server (with streaming)
+│   │   ├── services/       # Business logic
+│   │   │   ├── langchain.service.js  # LangChain streaming
+│   │   │   ├── ai.service.js         # OpenAI integration
+│   │   │   └── vector.service.js     # Pinecone vector DB
+│   │   ├── sockets/        # Socket.IO server
+│   │   │   └── socket.server.js      # Streaming implementation
 │   │   ├── middlewares/    # Auth middleware
+│   │   ├── constants/      # App constants
+│   │   │   └── faq.constants.js      # TechStore FAQ
 │   │   ├── db/             # Database connection
 │   │   └── app.js          # Express app
 │   ├── server.js           # Entry point
-│   ├── package.json
-│   └── .env.example
-│
-└── Frontend/               # React frontend
-    ├── src/
-    │   ├── components/
-    │   │   └── chat/       # Chat UI components
-    │   ├── pages/          # Home page
-    │   ├── store/          # Redux state
-    │   └── main.jsx
-    ├── package.json
-    └── .env.example
+│   ├── .env.example        # Environment template
+│   ├── README.md           # Backend docs
+│   └── package.json
+├── Frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── auth/       # Login/Register
+│   │   │   └── chat/       # Chat components
+│   │   │       ├── ChatComposer.jsx    # Input with counter
+│   │   │       ├── ChatMessages.jsx    # Message display
+│   │   │       └── ChatSidebar.jsx     # Session list
+│   │   ├── pages/
+│   │   │   ├── Home.jsx    # Main chat (streaming logic)
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
+│   │   ├── store/          # Redux state
+│   │   └── utils/          # Image processing
+│   ├── .env.example        # Environment template
+│   ├── README.md           # Frontend docs
+│   └── package.json
+└── README.md               # This file
 ```
 
 ---
 
-## 🛠️ Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js** 20+ and npm
-- **MongoDB** (local or Atlas)
-- **OpenAI API Key**
 
-### 1. Clone & Install
+- Node.js 18+
+- MongoDB (local or Atlas)
+- OpenAI API key
+- Pinecone API key
 
-```bash
-# Navigate to project
-cd spur_
+### Backend Setup
 
-# Install backend dependencies
-cd backend
-npm install
+1. **Navigate to backend:**
+   ```bash
+   cd Backend
+   ```
 
-# Install frontend dependencies
-cd ../frontend
-npm install
-```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-### 2. Configure Environment Variables
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` with your values:
+   ```env
+   PORT=3000
+   MONGO_URI=your_mongodb_uri
+   JWT_SECRET=your_jwt_secret
+   OPENAI_API_KEY=your_openai_key
+   PINECONE_API_KEY=your_pinecone_key
+   
+   # Optional (for image uploads)
+   IMAGEKIT_PUBLICKEY=your_imagekit_public_key
+   IMAGEKIT_PRIVATEKEY=your_imagekit_private_key
+   IMAGEKIT_URL=your_imagekit_url
+   ```
 
-**Backend** (`backend/.env`):
-```bash
-MONGODB_URI=mongodb://localhost:27017/spur_chat
-# OR MongoDB Atlas: mongodb+srv://user:pass@cluster.mongodb.net/spur_chat
+4. **Start the server:**
+   ```bash
+   npm run dev
+   ```
+   
+   Server runs on `http://localhost:3000`
 
-OPENAI_API_KEY=sk-your-openai-api-key-here
-JWT_SECRET=your-random-secret-key-here
-PORT=3000
-CORS_ORIGIN=http://localhost:5173
-```
+### Frontend Setup
 
-**Frontend** (`frontend/.env`):
-```bash
-VITE_API_URL=http://localhost:3000
-VITE_WS_URL=http://localhost:3000
-```
+1. **Navigate to frontend:**
+   ```bash
+   cd Frontend
+   ```
 
-### 3. Start MongoDB
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-**Option A: Local MongoDB**
-```bash
-mongod
-```
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env`:
+   ```env
+   VITE_API_URL=http://localhost:3000
+   VITE_WS_URL=http://localhost:3000
+   ```
 
-**Option B: MongoDB Atlas**
-- Use your Atlas connection string in `MONGODB_URI`
+4. **Start the dev server:**
+   ```bash
+   npm run dev
+   ```
+   
+   App runs on `http://localhost:5173`
 
-### 4. Run the Application
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm run dev
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-
-Open **http://localhost:5173** in your browser
+5. **Open browser:**
+   - Register a new account
+   - Start chatting with the AI!
 
 ---
 
-## 📖 API Endpoints
+## 🎯 Streaming Implementation
 
-### Authentication
-```http
+The app implements **smooth, controlled streaming** for optimal UX:
+
+### Backend Flow
+1. Receives message via Socket.IO
+2. Calls LangChain with OpenAI streaming
+3. Emits `ai-stream-chunk` for each token
+4. Sends `ai-typing: false` on first chunk
+5. Emits `ai-response` with complete message
+
+### Frontend Flow
+1. Receives chunks via `ai-stream-chunk` event
+2. Queues chunks for throttled processing
+3. Displays chunks with **100ms delay** between each
+4. Hides typing indicator on first chunk
+5. Finalizes message on `ai-response`
+
+**Result:** Natural, readable streaming without overwhelming the user.
+
+---
+
+## 🔌 API Documentation
+
+### REST API
+
+#### Authentication
+```bash
 POST /api/auth/register
-Body: { email, password, name? }
-
 POST /api/auth/login
-Body: { email, password }
+POST /api/auth/logout
 ```
 
-### Chat Management
-```http
-POST /api/chat
-Body: { title }
-Headers: Cookie with JWT token
+#### Chat
+```bash
+POST /api/chat              # Create new chat
+GET /api/chat               # Get all chats
+GET /api/chat/messages/:id  # Get chat messages
+DELETE /api/chat/messages/:id # Delete chat
+```
 
-GET /api/chat
-Returns: All user's chats
-
-GET /api/chat/messages/:chatId
-Returns: Message history for chat
-
-POST /api/chat/message (Assignment requirement)
-Body: { message, sessionId? }
-Returns: { reply, sessionId }
+#### Assignment Endpoint
+```bash
+POST /api/chat/message
+Body: { "message": "your question", "sessionId": "optional" }
+Response: { "reply": "AI response", "sessionId": "chat_id" }
 ```
 
 ### Socket.IO Events
-```javascript
-// Client → Server
-socket.emit('ai-message', { chat: chatId, content: message })
 
-// Server → Client
-socket.on('ai-stream-chunk', { chunk, chat })  // Real-time streaming chunks
-socket.on('ai-response', { content, chat })     // Complete message
-socket.on('ai-typing', isTyping)                // true/false
-socket.on('ai-error', { message })              // Error messages
-```
+**Client → Server:**
+- `ai-message` - Send text message
+- `ai-image-message` - Send image with prompt
+
+**Server → Client:**
+- `ai-stream-chunk` - Streaming token
+- `ai-typing` - Typing state (true/false)
+- `ai-response` - Complete response
+- `ai-error` - Error message
+- `image-uploaded` - Image upload success
+- `image-upload-error` - Upload failure
 
 ---
 
-## 🏗️ Architecture
+## 🤖 AI Models
 
-### LangChain Integration
-The AI service uses **LangChain** to wrap OpenAI's API, providing:
-- Structured conversation history management
-- System prompts with FAQ knowledge injection
-- Automatic context window handling
-- Retry logic and error boundaries
+| Use Case | Model | Purpose |
+|----------|-------|---------|
+| Basic Chat | `gpt-4o-mini` | Fast, cost-effective responses |
+| Thinking Mode | `o3-mini` | Advanced reasoning |
+| Vision | `gpt-4o` | Image understanding |
+| Embeddings | `text-embedding-3-small` | 768-dim vectors for memory |
 
-**FAQ Knowledge** (hardcoded in `ai.service.ts`):
-- **Shipping**: Free over $50, 5-7 days USA/Canada/Mexico
-- **Returns**: 30-day policy, unused items, 5-7 day refund
-- **Support**: Mon-Fri 9-6 EST, support@techstore.com
-- **Payment**: Visa, MC, AmEx, PayPal, Apple/Google Pay
-- **Warranty**: 1-year standard, extended available
+---
 
-### Database Schema
-```typescript
-User { email, password, name }
-Chat { user, title, lastActivity }
-Message { user, chat, content, role: 'user' | 'model' | 'system' }
-```
+## 📝 FAQ Knowledge Base
 
-### Socket.IO Flow (Streaming)
-1. User sends message → `ai-message` event
-2. Backend validates input (empty message, 2000 char limit)
-3. Emit `ai-typing: true`
-4. Fetch last 20 messages from DB
-5. Call LangChain streaming API with conversation history
-6. **Stream chunks in real-time** → emit `ai-stream-chunk` events
-7. After streaming completes → emit `ai-response` with full text
-8. Emit `ai-typing: false`
-9. Save both user and AI messages to MongoDB
-10. Generate embeddings and store in Pinecone (optional)
+The AI is pre-loaded with TechStore policies:
+
+- **Shipping** - Free shipping, delivery times, tracking
+- **Returns** - 30-day guarantee, refund process
+- **Warranty** - Manufacturer warranty, extended options
+- **Support** - Hours (9 AM - 6 PM EST), contact methods
+- **Payment** - Accepted methods, security, installments
+- **Order Tracking** - Order number, tracking link
+
+Test with questions like:
+- "What is your return policy?"
+- "Do you offer free shipping?"
+- "What are your support hours?"
 
 ---
 
 ## 🧪 Testing
 
-### Manual Verification
-1. **Register/Login** - Create account, login
-2. **Create Chat** - Click "+ New Chat", enter title
-3. **Send Message** - Type "What's your return policy?"
-   - ✅ Expect: AI responds with 30-day policy details
-   - ✅ Expect: Typing indicator shows before response
-4. **Input Validation**
-   - ❌ Empty message → Error toast
-   - ❌ 2001+ chars → Error toast
-5. **Error Handling** - Stop backend, send message
-   - ✅ Expect: "AI service unavailable" error
-6. **Session Persistence** - Refresh page
-   - ✅ Expect: Messages still visible
+### Manual Testing
 
----
+1. **Streaming:**
+   - Send message
+   - Verify typing indicator appears
+   - Indicator disappears on first chunk
+   - Text streams smoothly word-by-word
 
-## 🎨 Design Decisions
+2. **Input Validation:**
+   - Type message
+   - See character counter (X/2000)
+   - Counter turns red at 2000+
+   - Send button disabled when invalid
 
-### Why LangChain?
-- **Better Prompts**: Structured template system
-- **Context Management**: Automatic token handling
-- **Extensibility**: Easy to add tools/agents later
-- **Error Handling**: Built-in retry/fallback logic
+3. **FAQ Accuracy:**
+   - Ask about shipping
+   - Ask about returns
+   - Verify accurate TechStore info
 
-### Why MongoDB over PostgreSQL?
-- **Proven**: Already working in existing project
-- **Flexible**: Easy schema changes for chat data
-- **Fast**: No JOINs needed for messages
-- **Assignment**: SQL preferred but not required
+4. **Error Handling:**
+   - Stop backend
+   - Send message
+   - See error toast
 
-### Typing Indicator Implementation
-- Socket.IO event `ai-typing` (true/false)
-- Emitted before/after LLM call
-- CSS animation with bouncing dots
-- Auto-hides on response or error
+### REST API Testing
 
-### Error Handling Strategy
-| Error Type | Handling |
-|------------|----------|
-| Empty message | Client-side validation + toast |
-| Long message (>2000 chars) | Client-side validation + toast |
-| LLM timeout | Catch, emit `ai-error` event |
-| Rate limit (429) | Friendly message: "AI is busy" |
-| Invalid API key | "Configuration error" |
-| Network failure | "Service unavailable" |
+```bash
+# Test assignment endpoint
+curl -X POST http://localhost:3000/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is your return policy?"}'
+
+# Expected response
+{
+  "reply": "TechStore offers a 30-day return policy...",
+  "sessionId": "chat_id_here"
+}
+```
 
 ---
 
 ## 🚀 Deployment
 
-### Backend (Render / Railway)
-1. Create new Web Service
-2. Connect GitHub repo, select `backend/` folder
-3. Build command: `npm install && npm run build`
-4. Start command: `npm start`
-5. Add environment variables (MongoDB Atlas URI, OpenAI key)
+### Backend (Railway/Render)
+
+1. Push code to GitHub
+2. Connect to Railway/Render
+3. Set environment variables
+4. Deploy
 
 ### Frontend (Vercel)
-1. Import project, select `frontend/` folder
-2. Framework: Vite
-3. Add `VITE_API_URL` pointing to backend URL
+
+1. Build: `npm run build`
+2. Deploy `dist/` folder to Vercel
+3. Set environment variables:
+   - `VITE_API_URL` - Your backend URL
+   - `VITE_WS_URL` - Your backend URL
 
 ---
 
-## ⏱️ If I Had More Time...
+## 📊 Architecture Highlights
 
-### Features
-- [x] Streaming AI responses (word-by-word) **✓ DONE**
-- [x] Vector database (Pinecone) for semantic search **✓ Already integrated**
-- [ ] Redis caching for frequent FAQs
-- [ ] Message editing/deletion
-- [ ] Chat export (PDF/JSON)
-- [ ] Admin dashboard with analytics
-- [ ] Multi-language support (i18n)
+### LangChain Integration
+- Centralized prompt management
+- Built-in streaming support
+- Easy model switching
+- FAQ injection via system messages
 
-### Tech Improvements
-- [ ] Svelte frontend (smaller bundle)
-- [ ] End-to-end tests (Playwright)
-- [ ] Unit tests for services (Jest)
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Rate limiting (express-rate-limit)
-- [ ] Monitoring (Sentry)
-- [ ] TypeScript on frontend too
+### Real-time Streaming
+- Socket.IO for bidirectional communication
+- Chunk-based streaming for smooth UX
+- 100ms throttle for comfortable reading pace
+- Typing indicators for better feedback
 
----
+### Error Handling
+- API key validation
+- Rate limit detection (429 errors)
+- Timeout handling
+- Network failure recovery
+- User-friendly error messages
 
-## 📝 Assignment Compliance Checklist
-
-| Requirement | Status |
-|------------|---------|
-| Node.js + TypeScript backend | ✅ |
-| LangChain integration | ✅ |
-| OpenAI API usage | ✅ |
-| FAQ/Domain knowledge | ✅ |
-| POST /chat/message endpoint | ✅ |
-| Chat UI with auto-scroll | ✅ |
-| Typing indicator | ✅ |
-| Input validation | ✅ |
-| Error handling | ✅ |
-| MongoDB persistence | ✅ |
-| Session management | ✅ |
-| Real-time (Socket.IO) | ✅ |
+### State Management
+- Redux for global chat state
+- Local state for streaming buffers
+- Optimistic UI updates
+- Efficient re-renders
 
 ---
 
-## 👨‍💻 Author
+## 🛠️ Customization
 
-Built for Spur - Founding Full-Stack Engineer Assignment
+### Adjust Streaming Speed
 
-**Tech Stack Highlights:**
-- TypeScript for type safety
-- LangChain for structured AI workflows
-- Socket.IO for real-time UX
-- MongoDB for flexible chat storage
-- JWT authentication for security
+In `Frontend/src/pages/Home.jsx` (line ~118):
+```javascript
+}, 100); // Change delay (ms) between chunks
+```
+
+### Change Character Limit
+
+1. Update backend validation in `langchain.service.js`
+2. Update frontend counter in `ChatComposer.jsx`
+
+### Modify FAQ Data
+
+Edit `Backend/src/constants/faq.constants.js`
+
+---
+
+## 📦 Dependencies
+
+### Backend
+- `express` - Web framework
+- `socket.io` - Real-time communication
+- `mongoose` - MongoDB ODM
+- `langchain` + `@langchain/openai` - LLM orchestration
+- `openai` - OpenAI SDK
+- `jsonwebtoken` - Authentication
+- `pinecone` - Vector database
+- `imagekit` - Image CDN
+
+### Frontend
+- `react` + `react-dom` - UI library
+- `@reduxjs/toolkit` - State management
+- `socket.io-client` - WebSocket client
+- `axios` - HTTP client
+- `react-hot-toast` - Notifications
+- `react-markdown` - Markdown rendering
+
+---
+
+## 📄 Assignment Compliance
+
+### ✅ Required Features
+- [x] LangChain integration for AI responses
+- [x] Real-time streaming with typing indicators
+- [x] FAQ knowledge base (TechStore)
+- [x] REST API endpoint (`POST /api/chat/message`)
+- [x] Input validation (max 2000 chars)
+- [x] Error handling (timeouts, rate limits, API failures)
+- [x] Conversation persistence (MongoDB)
+- [x] Session management
+
+### ✅ Bonus Features
+- [x] Image upload support
+- [x] Thinking mode (advanced reasoning)
+- [x] Character counter with visual feedback
+- [x] Smooth streaming with throttle control
+- [x] Vector database for conversation memory
+- [x] Multiple chat sessions per user
+
+---
+
+## 📞 Support
+
+For questions or issues related to this implementation, please refer to:
+- Backend README: `Backend/README.md`
+- Frontend README: `Frontend/README.md`
+- LangChain docs: https://js.langchain.com/docs/
+- OpenAI docs: https://platform.openai.com/docs/
 
 ---
 
 ## 📄 License
 
-ISC
+This project is part of the Spur Founding Full-Stack Engineer Take-Home assignment.
+
+---
+
+**Built with ❤️ for Spur**
