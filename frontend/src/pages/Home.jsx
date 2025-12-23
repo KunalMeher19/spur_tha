@@ -106,8 +106,6 @@ const Home = () => {
             m.streaming ? { ...m, content: m.content + chunk } : m
           );
         } else {
-          // First chunk - hide typing indicator
-          setIsAITyping(false);
           return [...prevMessages, {
             type: 'ai',
             content: chunk,
@@ -157,7 +155,9 @@ const Home = () => {
     // Add streaming support handlers
     tempSocket.on('ai-stream-chunk', (payload) => {
       const { chunk } = payload;
-      // Queue chunks for throttled display (50ms delay)
+      // Turn off typing indicator as soon as chunks arrive
+      setIsAITyping(false);
+      // Queue chunks for throttled display (80ms delay)
       setChunkQueue(prev => [...prev, chunk]);
 
     });
