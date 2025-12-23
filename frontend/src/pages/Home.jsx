@@ -12,7 +12,6 @@ import axios from 'axios';
 
 // UPDATED: Use environment variable or localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-import axios from 'axios';
 import {
   ensureInitialChat,
   startNewChat,
