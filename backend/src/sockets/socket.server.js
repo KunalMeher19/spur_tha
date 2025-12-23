@@ -327,6 +327,7 @@ function initSocketServer(httpServer) {
 
                 // Stream AI response using LangChain
                 let fullResponse = '';
+                console.log('[Socket] Starting streaming for chat:', messagePayload.chat);
 
                 try {
                     fullResponse = await langchainService.generateStreamingResponse(
@@ -334,6 +335,7 @@ function initSocketServer(httpServer) {
                         messagePayload.content,
                         (chunk) => {
                             // Emit each chunk in real-time
+                            console.log('[Socket] Emitting chunk:', chunk.substring(0, 20) + '...');
                             socket.emit('ai-stream-chunk', {
                                 chunk,
                                 chat: messagePayload.chat

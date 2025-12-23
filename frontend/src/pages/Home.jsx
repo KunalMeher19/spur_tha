@@ -119,6 +119,7 @@ const Home = () => {
 
     // Add streaming support handlers
     tempSocket.on('ai-stream-chunk', (payload) => {
+      console.log('[Frontend] 🔥 Received streaming chunk:', payload);
       const { chunk, chat } = payload;
       if (chat !== activeChatId) return;  // Ignore chunks for other chats
 
@@ -156,6 +157,7 @@ const Home = () => {
     });
 
     tempSocket.on("ai-response", (messagePayload) => {
+      console.log('[Frontend] Received ai-response (finalizing):', messagePayload);
       // If server echoes a previewId and/or imageData, update the corresponding preview message
       if (messagePayload.previewId) {
         setMessages(prev => prev.map(m => m.id === messagePayload.previewId ? {
@@ -172,12 +174,15 @@ const Home = () => {
         const streamingMsg = prevMessages.find(m => m.streaming);
 
         if (streamingMsg) {
-          // Streaming message exists, finalize it
+          // Streaming message exists, just remove the streaming flag
+          // DON'T replace content - it was already streamed!
+          console.log('[Frontend] Finalizing streaming message');
           return prevMessages.map(m =>
-            m.streaming ? { ...m, content: messagePayload.content, streaming: false } : m
+            m.streaming ? { ...m, streaming: false } : m
           );
         } else {
-          // No streaming message, add complete response
+          // No streaming message, add complete response (fallback for non-streaming scenarios)
+          console.log('[Frontend] Adding complete response (no streaming)');
           return [...prevMessages, {
             type: 'ai',
             content: messagePayload.content
