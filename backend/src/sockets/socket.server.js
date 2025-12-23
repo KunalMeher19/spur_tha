@@ -237,176 +237,176 @@ function initSocketServer(httpServer) {
         });
 
         // Text-only messages with LangChain streaming support
-        socket.on("ai-message", async(messagePayload) =\u003e {
+        socket.on("ai-message", async (messagePayload) => {
             try {
                 // Input validation
                 const langchainService = require('../services/langchain.service');
                 const validation = langchainService.validateMessage(messagePayload.content);
 
-                if(!validation.valid) {
-            socket.emit("ai-error", {
-                message: validation.error,
-                chat: messagePayload.chat
-            });
-            return;
-        }
-
-        // Emit typing indicator
-        socket.emit("ai-typing", true);
-
-        const [message, vectors] = await Promise.all([
-            messageModel.create({
-                user: socket.user._id,
-                chat: messagePayload.chat,
-                content: messagePayload.content,
-                role: "user"
-            }),
-            aiService.embeddingGenerator(messagePayload.content)
-        ]);
-
-        // If this is the first message in a temp chat, generate a title and update the chat
-        try {
-            const chatId = messagePayload.chat;
-            const [msgCount, chatDoc] = await Promise.all([
-                messageModel.countDocuments({ chat: chatId }),
-                chatModel.findById(chatId).lean()
-            ]);
-            // msgCount includes the just-created user message; first real message means count === 1
-            if (chatDoc && chatDoc.isTemp && msgCount === 1) {
-                const newTitle = await aiService.generateTitleFromText(messagePayload.content);
-                await chatModel.findByIdAndUpdate(chatId, { $set: { title: newTitle, isTemp: false, lastActivity: new Date() } });
-            }
-        } catch (e) {
-            console.warn('Failed to generate/update temp chat title:', e && (e.message || e));
-        }
-
-        // Fetch conversation history and memory
-        const [memory, chatHistory] = await Promise.all([
-            queryMemory({
-                queryVector: vectors,
-                limit: 3,
-                metadata: { user: socket.user._id }
-            }),
-            messageModel.find({ chat: messagePayload.chat }).sort({ createdAt: -1 }).limit(20).lean().then(messages => messages.reverse()),
-            createMemory({
-                vectors,
-                messageId: message._id,
-                metadata: { chat: messagePayload.chat, user: socket.user._id, text: messagePayload.content }
-            })
-        ]);
-
-        // Build conversation history for LangChain
-        const conversationHistory = [];
-
-        // Add retrieved memory as context (optional - can be prepended as a system-like message)
-        if (memory && memory.length > 0) {
-            const memoryContext = memory.map(item => item.metadata.text).join("\n");
-            conversationHistory.push({
-                role: 'user',
-                content: `Context from previous conversations:\n${memoryContext}\n\n---\n`
-            });
-            conversationHistory.push({
-                role: 'model',
-                content: 'I understand and will use this context to maintain continuity.'
-            });
-        }
-
-        // Add recent chat history
-        chatHistory.forEach(msg => {
-            conversationHistory.push({
-                role: msg.role === 'model' ? 'model' : 'user',
-                content: msg.content
-            });
-        });
-
-        // Determine model based on mode
-        let modelOverride = undefined;
-        if (messagePayload.mode === 'thinking') {
-            modelOverride = langchainService.MODELS.THINKING;
-        }
-
-        // Stream AI response using LangChain
-        let fullResponse = '';
-
-        try {
-            fullResponse = await langchainService.generateStreamingResponse(
-                conversationHistory,
-                messagePayload.content,
-                (chunk) => {
-                    // Emit each chunk in real-time
-                    socket.emit('ai-stream-chunk', {
-                        chunk,
+                if (!validation.valid) {
+                    socket.emit("ai-error", {
+                        message: validation.error,
                         chat: messagePayload.chat
                     });
-                },
-                modelOverride ? { model: modelOverride } : {}
-            );
-        } catch (streamError) {
-            console.error('LangChain streaming error:', streamError);
-            // Emit typing indicator off
-            socket.emit("ai-typing", false);
+                    return;
+                }
 
-            socket.emit("ai-error", {
-                message: streamError.message || 'AI service unavailable',
-                chat: messagePayload.chat
-            });
-            return;
-        }
+                // Emit typing indicator
+                socket.emit("ai-typing", true);
 
-        // Emit typing indicator off
-        socket.emit("ai-typing", false);
+                const [message, vectors] = await Promise.all([
+                    messageModel.create({
+                        user: socket.user._id,
+                        chat: messagePayload.chat,
+                        content: messagePayload.content,
+                        role: "user"
+                    }),
+                    aiService.embeddingGenerator(messagePayload.content)
+                ]);
 
-        // Fetch latest chat doc to include updated title if it changed
-        let updatedTitle;
-        try {
-            const c = await chatModel.findById(messagePayload.chat).lean();
-            updatedTitle = c && c.title;
-        } catch { }
+                // If this is the first message in a temp chat, generate a title and update the chat
+                try {
+                    const chatId = messagePayload.chat;
+                    const [msgCount, chatDoc] = await Promise.all([
+                        messageModel.countDocuments({ chat: chatId }),
+                        chatModel.findById(chatId).lean()
+                    ]);
+                    // msgCount includes the just-created user message; first real message means count === 1
+                    if (chatDoc && chatDoc.isTemp && msgCount === 1) {
+                        const newTitle = await aiService.generateTitleFromText(messagePayload.content);
+                        await chatModel.findByIdAndUpdate(chatId, { $set: { title: newTitle, isTemp: false, lastActivity: new Date() } });
+                    }
+                } catch (e) {
+                    console.warn('Failed to generate/update temp chat title:', e && (e.message || e));
+                }
 
-        // Emit complete response (backward compatibility)
-        socket.emit("ai-response", {
-            content: fullResponse,
-            chat: messagePayload.chat,
-            ...(updatedTitle ? { title: updatedTitle } : {})
-        });
+                // Fetch conversation history and memory
+                const [memory, chatHistory] = await Promise.all([
+                    queryMemory({
+                        queryVector: vectors,
+                        limit: 3,
+                        metadata: { user: socket.user._id }
+                    }),
+                    messageModel.find({ chat: messagePayload.chat }).sort({ createdAt: -1 }).limit(20).lean().then(messages => messages.reverse()),
+                    createMemory({
+                        vectors,
+                        messageId: message._id,
+                        metadata: { chat: messagePayload.chat, user: socket.user._id, text: messagePayload.content }
+                    })
+                ]);
 
-        // Save AI response to database
-        const [responseMessage, responseVectors] = await Promise.all([
-            messageModel.create({
-                user: socket.user._id,
-                chat: messagePayload.chat,
-                content: fullResponse,
-                role: "model"
-            }),
-            aiService.embeddingGenerator(fullResponse)
-        ]);
+                // Build conversation history for LangChain
+                const conversationHistory = [];
 
-        // Store response in vector DB
-        await createMemory({
-            vectors: responseVectors,
-            messageId: responseMessage._id,
-            metadata: {
-                chat: messagePayload.chat,
-                user: socket.user._id,
-                text: fullResponse
+                // Add retrieved memory as context (optional - can be prepended as a system-like message)
+                if (memory && memory.length > 0) {
+                    const memoryContext = memory.map(item => item.metadata.text).join("\n");
+                    conversationHistory.push({
+                        role: 'user',
+                        content: `Context from previous conversations:\n${memoryContext}\n\n---\n`
+                    });
+                    conversationHistory.push({
+                        role: 'model',
+                        content: 'I understand and will use this context to maintain continuity.'
+                    });
+                }
+
+                // Add recent chat history
+                chatHistory.forEach(msg => {
+                    conversationHistory.push({
+                        role: msg.role === 'model' ? 'model' : 'user',
+                        content: msg.content
+                    });
+                });
+
+                // Determine model based on mode
+                let modelOverride = undefined;
+                if (messagePayload.mode === 'thinking') {
+                    modelOverride = langchainService.MODELS.THINKING;
+                }
+
+                // Stream AI response using LangChain
+                let fullResponse = '';
+
+                try {
+                    fullResponse = await langchainService.generateStreamingResponse(
+                        conversationHistory,
+                        messagePayload.content,
+                        (chunk) => {
+                            // Emit each chunk in real-time
+                            socket.emit('ai-stream-chunk', {
+                                chunk,
+                                chat: messagePayload.chat
+                            });
+                        },
+                        modelOverride ? { model: modelOverride } : {}
+                    );
+                } catch (streamError) {
+                    console.error('LangChain streaming error:', streamError);
+                    // Emit typing indicator off
+                    socket.emit("ai-typing", false);
+
+                    socket.emit("ai-error", {
+                        message: streamError.message || 'AI service unavailable',
+                        chat: messagePayload.chat
+                    });
+                    return;
+                }
+
+                // Emit typing indicator off
+                socket.emit("ai-typing", false);
+
+                // Fetch latest chat doc to include updated title if it changed
+                let updatedTitle;
+                try {
+                    const c = await chatModel.findById(messagePayload.chat).lean();
+                    updatedTitle = c && c.title;
+                } catch { }
+
+                // Emit complete response (backward compatibility)
+                socket.emit("ai-response", {
+                    content: fullResponse,
+                    chat: messagePayload.chat,
+                    ...(updatedTitle ? { title: updatedTitle } : {})
+                });
+
+                // Save AI response to database
+                const [responseMessage, responseVectors] = await Promise.all([
+                    messageModel.create({
+                        user: socket.user._id,
+                        chat: messagePayload.chat,
+                        content: fullResponse,
+                        role: "model"
+                    }),
+                    aiService.embeddingGenerator(fullResponse)
+                ]);
+
+                // Store response in vector DB
+                await createMemory({
+                    vectors: responseVectors,
+                    messageId: responseMessage._id,
+                    metadata: {
+                        chat: messagePayload.chat,
+                        user: socket.user._id,
+                        text: fullResponse
+                    }
+                });
+
+            } catch (error) {
+                console.error("Socket AI handler error:", error);
+                socket.emit("ai-typing", false);
+                socket.emit("ai-error", {
+                    message: "Something went wrong, please try again.",
+                    chat: messagePayload && messagePayload.chat
+                });
             }
         });
 
-    } catch (error) {
-        console.error("Socket AI handler error:", error);
-        socket.emit("ai-typing", false);
-        socket.emit("ai-error", {
-            message: "Something went wrong, please try again.",
-            chat: messagePayload && messagePayload.chat
+        socket.on("disconnect", () => {
+            connectedUsers = Math.max(0, connectedUsers - 1);
+            console.log(`user ${socket.id} disconnected`);
+            console.log(`connected users: ${connectedUsers}`);
         });
-    }
-});
-
-socket.on("disconnect", () => {
-    connectedUsers = Math.max(0, connectedUsers - 1);
-    console.log(`user ${socket.id} disconnected`);
-    console.log(`connected users: ${connectedUsers}`);
-});
     });
 
     // Removed periodic logging of connected users to prevent noisy logs
