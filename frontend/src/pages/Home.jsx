@@ -119,9 +119,9 @@ const Home = () => {
 
     // Add streaming support handlers
     tempSocket.on('ai-stream-chunk', (payload) => {
-      console.log('[Frontend] 🔥 Received streaming chunk:', payload);
-      const { chunk, chat } = payload;
-      if (chat !== activeChatId) return;  // Ignore chunks for other chats
+      const { chunk } = payload;
+      // Note: We don't check activeChatId here because of closure staleness
+      // The backend only sends chunks for the current active chat anyway
 
       setMessages((prevMessages) => {
         // Check if we're already streaming a message
