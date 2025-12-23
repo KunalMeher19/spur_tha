@@ -50,6 +50,7 @@ const Home = () => {
   const [isNewChatPopupOpen, setIsNewChatPopupOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [composerMode, setComposerMode] = useState('normal');
+  const [isAITyping, setIsAITyping] = useState(false);  // Typing indicator state
 
   useEffect(() => {
     // Handle window resize
@@ -116,6 +117,44 @@ const Home = () => {
       toast.error('Failed to connect to chat server');
     });
 
+    // Add streaming support handlers
+    tempSocket.on('ai-stream-chunk', (payload) => {
+      const { chunk, chat } = payload;
+      if (chat !== activeChatId) return;  // Ignore chunks for other chats
+
+      setMessages((prevMessages) => {
+        // Check if we're already streaming a message
+        const streamingMsg = prevMessages.find(m => m.streaming);
+
+        if (streamingMsg) {
+          // Append chunk to existing streaming message
+          return prevMessages.map(m =>
+            m.streaming ? { ...m, content: m.content + chunk } : m
+          );
+        } else {
+          // Create new streaming message
+          return [...prevMessages, {
+            type: 'ai',
+            content: chunk,
+            streaming: true,  // Mark as streaming
+            id: `stream_${Date.now()}`
+          }];
+        }
+      });
+    });
+
+    tempSocket.on('ai-typing', (isTyping) => {
+      setIsAITyping(isTyping);
+    });
+
+    tempSocket.on('ai-error', (payload) => {
+      toast.error(payload.message || 'An error occurred');
+      dispatch(sendingFinished());
+      setIsAITyping(false);
+      // Remove any streaming placeholder
+      setMessages(prev => prev.filter(m => !m.streaming));
+    });
+
     tempSocket.on("ai-response", (messagePayload) => {
       // If server echoes a previewId and/or imageData, update the corresponding preview message
       if (messagePayload.previewId) {
@@ -128,11 +167,23 @@ const Home = () => {
         } : m));
       }
 
-      // Append AI response content
-      setMessages((prevMessages) => [...prevMessages, {
-        type: 'ai',
-        content: messagePayload.content
-      }]);
+      // Finalize streaming message or add new AI response
+      setMessages((prevMessages) => {
+        const streamingMsg = prevMessages.find(m => m.streaming);
+
+        if (streamingMsg) {
+          // Streaming message exists, finalize it
+          return prevMessages.map(m =>
+            m.streaming ? { ...m, content: messagePayload.content, streaming: false } : m
+          );
+        } else {
+          // No streaming message, add complete response
+          return [...prevMessages, {
+            type: 'ai',
+            content: messagePayload.content
+          }];
+        }
+      });
 
       // If server indicates the chat title changed (e.g., from Temp to generated title), update local state
       if (messagePayload.title && messagePayload.chat) {
@@ -140,6 +191,7 @@ const Home = () => {
       }
 
       // clear any sending state
+      setIsAITyping(false);
       dispatch(sendingFinished());
     });
 
@@ -350,7 +402,7 @@ const Home = () => {
             <p>Start by creating a new chat from top.</p>
           </div>
         )}
-        <ChatMessages messages={messages} isSending={isSending} />
+        <ChatMessages messages={messages} isSending={isSending || isAITyping} />
         {
           activeChatId &&
           <ChatComposer

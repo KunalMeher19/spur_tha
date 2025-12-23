@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middlewares/auth.middleware')
 const chatController = require('../controllers/chat.controllers')
+const chatMessageController = require('../controllers/chatMessage.controller')
 
 // POST /api/chat/
 router.route('/')
     .post(authMiddleware.authUser, chatController.createChat)
+
+// POST /api/chat/message (Assignment requirement - REST API endpoint)
+router.post('/message', authMiddleware.optionalAuth, chatMessageController.sendMessage);
 
 // NOTE: Image uploads are handled via socket.io now. The old /upload endpoint was removed.
 

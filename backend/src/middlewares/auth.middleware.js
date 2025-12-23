@@ -32,6 +32,31 @@ async function authUser(req, res, next) {
     }
 }
 
+// Optional auth - allows both authenticated and unauthenticated requests
+async function optionalAuth(req, res, next) {
+    const { token } = req.cookies;
+
+    if (!token) {
+        // No token, proceed without user
+        req.user = null;
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded) {
+            const user = await userModel.findOne({ _id: decoded.id });
+            req.user = user;
+        }
+    } catch (err) {
+        // Invalid token, proceed without user
+        req.user = null;
+    }
+
+    next();
+}
+
 module.exports = {
-    authUser
+    authUser,
+    optionalAuth
 }

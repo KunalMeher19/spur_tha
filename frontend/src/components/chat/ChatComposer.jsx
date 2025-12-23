@@ -167,12 +167,12 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
     try {
       // Only generate a local preview and keep the File. Do not auto-upload.
       const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          // keep local preview and the File object only; do not notify parent yet
-          setPreviewSrc(dataUrl);
-          setSelectedFile(file);
-        };
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        // keep local preview and the File object only; do not notify parent yet
+        setPreviewSrc(dataUrl);
+        setSelectedFile(file);
+      };
       reader.readAsDataURL(file);
     } finally {
       e.target.value = '';
@@ -180,7 +180,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
   };
 
   return (
-    <form className="composer" onSubmit={e => { 
+    <form className="composer" onSubmit={e => {
       e.preventDefault();
       // if there's an attached file, send it along with the prompt
       if (previewSrc && selectedFile) {
@@ -284,6 +284,15 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
                   autoComplete="off"
                   autoFocus
                 />
+                {/* Character counter */}
+                <div className="composer-char-counter" style={{
+                  fontSize: '0.75rem',
+                  color: (input && input.length > 2000) ? '#ff4444' : '#888',
+                  marginTop: '4px',
+                  textAlign: 'right'
+                }}>
+                  {input ? input.length : 0}/2000
+                </div>
                 <div className="composer-hint" aria-hidden="true">Enter ↵ to send • Shift+Enter = newline</div>
               </div>
             </div>
@@ -291,8 +300,12 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
           <button
             type="submit"
             className="send-btn icon-btn"
-            // allow sending when there is either text or an attached image
-            disabled={!( (typeof input === 'string' && input.trim()) || previewSrc ) || isSending}
+            // Disable button if: empty message, message too long (>2000 chars), or sending
+            disabled={
+              !((typeof input === 'string' && input.trim() && input.length <= 2000) || previewSrc) ||
+              isSending ||
+              (input && input.length > 2000)
+            }
             aria-label={isSending ? 'Sending…' : 'Send message'}
           >
             <span className="send-icon" aria-hidden="true">
