@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { io } from "socket.io-client";
 import ChatMobileBar from '../components/chat/ChatMobileBar.jsx';
 import ChatSidebar from '../components/chat/ChatSidebar.jsx';
@@ -6,21 +6,17 @@ import ChatMessages from '../components/chat/ChatMessages.jsx';
 import ChatComposer from '../components/chat/ChatComposer.jsx';
 import TypingIndicator from '../components/chat/TypingIndicator.jsx';
 import '../components/chat/ChatLayout.css';
-import { fakeAIReply } from '../components/chat/aiClient.js';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 
 // UPDATED: Use environment variable or localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import {
-  ensureInitialChat,
   startNewChat,
   selectChat,
   setInput,
   sendingStarted,
   sendingFinished,
-  addUserMessage,
-  addAIMessage,
   setChats
 } from '../store/chatSlice.js';
 
@@ -34,8 +30,6 @@ const Home = () => {
   const [socket, setSocket] = useState(null);
   const [isTyping, setIsTyping] = useState(false); // NEW: Typing indicator state
   const [error, setError] = useState(null); // NEW: Error state
-
-  const activeChat = chats.find(c => c.id === activeChatId) || null;
 
   const [messages, setMessages] = useState([
     // {
@@ -74,7 +68,15 @@ const Home = () => {
 
     axios.get(`${API_BASE_URL}/api/chat`, { withCredentials: true })
       .then(response => {
-        dispatch(setChats(response.data.chats.reverse()));
+        const loadedChats = response.data.chats.reverse();
+        dispatch(setChats(loadedChats));
+
+        // AUTO-SELECT FIRST CHAT (from original project)
+        if (loadedChats.length > 0 && !activeChatId) {
+          const firstChat = loadedChats[0];
+          dispatch(selectChat(firstChat._id));
+          getMessages(firstChat._id);
+        }
       })
       .catch(err => {
         console.error('Failed to load chats:', err);

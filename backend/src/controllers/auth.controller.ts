@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import userModel from '../models/user.model';
+import chatModel from '../models/chat.model';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -47,12 +48,22 @@ export async function registerUser(req: Request<{}, {}, RegisterBody>, res: Resp
             sameSite: 'lax'
         });
 
+        // AUTO-CREATE INITIAL CHAT (from original project)
+        const initialChat = await chatModel.create({
+            user: user._id,
+            title: 'Welcome Chat'
+        });
+
         res.status(201).json({
             message: 'User registered successfully',
             user: {
                 email: user.email,
                 _id: user._id,
                 name: user.name
+            },
+            initialChat: {
+                _id: initialChat._id,
+                title: initialChat.title
             }
         });
     } catch (error) {
@@ -92,13 +103,30 @@ export async function loginUser(req: Request<{}, {}, LoginBody>, res: Response):
             sameSite: 'lax'
         });
 
+        // AUTO-CREATE INITIAL CHAT IF USER HAS NO CHATS (from original project)
+        const existingChats = await chatModel.find({ user: user._id });
+        let initialChat = null;
+
+        if (existingChats.length === 0) {
+            initialChat = await chatModel.create({
+                user: user._id,
+                title: 'Welcome Chat'
+            });
+        }
+
         res.status(200).json({
             message: 'User logged in successfully',
             user: {
                 email: user.email,
                 _id: user._id,
                 name: user.name
-            }
+            },
+            ...(initialChat && {
+                initialChat: {
+                    _id: initialChat._id,
+                    title: initialChat.title
+                }
+            })
         });
     } catch (error) {
         console.error('Login error:', error);
