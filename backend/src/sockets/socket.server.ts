@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
-import cookie from 'cookie';
+import * as cookie from 'cookie';
 import jwt from 'jsonwebtoken';
 import sharp from 'sharp';
 import { Types } from 'mongoose';
