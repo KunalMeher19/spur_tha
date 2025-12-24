@@ -161,9 +161,10 @@ const Home = () => {
     // Add streaming support handlers
     tempSocket.on('ai-stream-chunk', (payload) => {
       const { chunk } = payload;
-      // Turn off typing indicator as soon as chunks arrive
+      // Turn off typing indicator AND sending state as soon as chunks arrive
       setIsAITyping(false);
-      // Queue chunks for throttled display (80ms delay)
+      dispatch(sendingFinished());
+      // Queue chunks for throttled display
       setChunkQueue(prev => [...prev, chunk]);
 
     });
