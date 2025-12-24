@@ -130,7 +130,7 @@ spur_/
    npm run dev
    ```
    
-   Server runs on `http://localhost:3000`
+   Server runs on `http://localhost:3000` (local) or `https://spur-tha.onrender.com` (production)
 
 ### Frontend Setup
 
@@ -151,8 +151,13 @@ spur_/
    
    Edit `.env`:
    ```env
+   # For local development
    VITE_API_URL=http://localhost:3000
    VITE_WS_URL=http://localhost:3000
+   
+   # For production (already configured)
+   VITE_API_URL=https://spur-tha.onrender.com
+   VITE_WS_URL=https://spur-tha.onrender.com
    ```
 
 4. **Start the dev server:**
@@ -160,7 +165,7 @@ spur_/
    npm run dev
    ```
    
-   App runs on `http://localhost:5173`
+   App runs on `http://localhost:5173` (local)
 
 5. **Open browser:**
    - Register a new account
@@ -290,8 +295,13 @@ Test with questions like:
 ### REST API Testing
 
 ```bash
-# Test assignment endpoint
+# Test assignment endpoint (local)
 curl -X POST http://localhost:3000/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is your return policy?"}'
+
+# Test assignment endpoint (production)
+curl -X POST https://spur-tha.onrender.com/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"message": "What is your return policy?"}'
 
