@@ -102,7 +102,7 @@ const Home = () => {
     setIsProcessingQueue(true);
     const chunk = chunkQueue[0];
 
-    // Add slight delay for readability (80ms per chunk)
+    // Add slight delay for readability (50ms per chunk)
     setTimeout(() => {
       setMessages((prevMessages) => {
         const streamingMsg = prevMessages.find(m => m.streaming);
