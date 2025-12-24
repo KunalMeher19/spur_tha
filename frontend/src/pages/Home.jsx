@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { io } from "socket.io-client";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,7 @@ const Home = () => {
   const [composerMode, setComposerMode] = useState('normal');
   const [isAITyping, setIsAITyping] = useState(false);  // Typing indicator state
   const [chunkQueue, setChunkQueue] = useState([]); // Queue for throttled chunks
+  const chunkQueueRef = useRef([]); // Ref to access latest queue in callbacks
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
 
   useEffect(() => {
@@ -89,6 +90,11 @@ const Home = () => {
 
   const _activeChat = chats.find(c => c.id === activeChatId) || null;
 
+  // Sync ref with queue state for access in callbacks
+  useEffect(() => {
+    chunkQueueRef.current = chunkQueue;
+  }, [chunkQueue]);
+
   // Process chunk queue with throttle delay for smoother display
   useEffect(() => {
     if (chunkQueue.length === 0 || isProcessingQueue) return;
@@ -118,7 +124,7 @@ const Home = () => {
       // Remove processed chunk and reset flag
       setChunkQueue(prev => prev.slice(1));
       setIsProcessingQueue(false);
-    }, 100); // 80ms delay between chunks (increased from 50ms)
+    }, 50); // Fast streaming for immediate feel
 
   }, [chunkQueue, isProcessingQueue]);
 
@@ -172,6 +178,41 @@ const Home = () => {
       setIsAITyping(false);
       // Remove any streaming placeholder
       setMessages(prev => prev.filter(m => !m.streaming));
+    });
+
+    // Handle stream completion for streaming-only responses
+    tempSocket.on('stream-end', (payload) => {
+      // Don't finalize immediately - wait for chunk queue to finish processing
+      // This prevents creating multiple chat bubbles when chunks are still queued
+      const finalizeStream = () => {
+        // Check queue length by reading from ref (avoids dependency issues)
+        if (chunkQueueRef.current.length === 0) {
+          // Queue is empty, safe to finalize
+          setMessages((prevMessages) => {
+            const streamingMsg = prevMessages.find(m => m.streaming);
+            if (streamingMsg) {
+              return prevMessages.map(m =>
+                m.streaming ? { ...m, streaming: false } : m
+              );
+            }
+            return prevMessages;
+          });
+
+          // Update chat title if changed
+          if (payload.title && payload.chat) {
+            dispatch(updateChatTitle({ chatId: payload.chat, title: payload.title }));
+          }
+
+          // Clear sending state
+          dispatch(sendingFinished());
+        } else {
+          // Still have chunks in queue, check again shortly
+          setTimeout(finalizeStream, 25);
+        }
+      };
+
+      // Start finalization check after a brief delay to ensure chunks are queued
+      setTimeout(finalizeStream, 50);
     });
 
     tempSocket.on("ai-response", (messagePayload) => {
