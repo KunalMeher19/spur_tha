@@ -14,6 +14,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
       setLocalMode(newMode);
     }
   };
+  
   const currentMode = onModeChange ? mode : localMode;
   const textareaRef = useRef(null);
   // Keep latest input in a ref to avoid stale closures in document listeners

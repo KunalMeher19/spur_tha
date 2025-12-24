@@ -1,15 +1,16 @@
-# Backend - Node.js Express Server
+# Backend - TypeScript Node.js Express Server
 
-AI-powered customer support chat backend built with Node.js, Express, LangChain, OpenAI, Socket.IO, and MongoDB.
+AI-powered customer support chat backend built with **TypeScript**, Node.js, Express, LangChain, OpenAI, Socket.IO, and MongoDB.
 
 ## 🚀 Features
 
+- **TypeScript** - Full type safety across the entire backend with strict type checking
 - **LangChain Integration** - Advanced AI prompt management with streaming responses
 - **Real-time Streaming** - Token-by-token AI responses via Socket.IO
 - **FAQ Knowledge Base** - Pre-seeded with TechStore policies (shipping, returns, warranty, support, payment)
 - **REST API** - POST /api/chat/message endpoint for assignment compliance
 - **Vector Database** - Pinecone for conversation memory and context
-- **Image Processing** - ImageKit integration for image uploads
+- **Image Processing** - ImageKit integration with Sharp for image optimization
 - **Authentication** - JWT-based authentication with HTTP-only cookies
 - **Error Handling** - Comprehensive error handling for LLM timeouts, rate limits, and API failures
 
@@ -50,9 +51,23 @@ AI-powered customer support chat backend built with Node.js, Express, LangChain,
    IMAGEKIT_URL=your_imagekit_url
    ```
 
-3. **Run the server:**
+3. **Run the development server:**
    ```bash
    npm run dev
+   ```
+   
+   This uses `tsx watch` for hot-reloading TypeScript files.
+
+4. **Build for production:**
+   ```bash
+   npm run build
+   ```
+   
+   This compiles TypeScript to JavaScript in the `dist/` folder.
+
+5. **Run production build:**
+   ```bash
+   npm start
    ```
 
    The server will start on `http://localhost:3000`
@@ -62,31 +77,36 @@ AI-powered customer support chat backend built with Node.js, Express, LangChain,
 ```
 Backend/
 ├── src/
+│   ├── types/           # TypeScript type definitions
+│   │   └── index.ts
 │   ├── controllers/     # Request handlers
-│   │   ├── auth.controllers.js
-│   │   ├── chat.controllers.js
-│   │   └── chatMessage.controller.js  # REST API endpoint
+│   │   ├── auth.controllers.ts
+│   │   ├── chat.controllers.ts
+│   │   └── chatMessage.controller.ts  # REST API endpoint
 │   ├── models/          # Mongoose schemas
-│   │   ├── user.model.js
-│   │   ├── chat.model.js
-│   │   └── message.model.js
-│   ├── routes/          # API routes
-│   │   ├── auth.router.js
-│   │   └── chat.router.js
+│   │   ├── user.model.ts
+│   │   ├── chat.model.ts
+│   │   └── message.model.ts
+│   ├── routers/         # API routes
+│   │   ├── auth.router.ts
+│   │   └── chat.router.ts
 │   ├── services/        # Business logic
-│   │   ├── langchain.service.js  # LangChain streaming
-│   │   ├── ai.service.js         # OpenAI integration
-│   │   └── vector.service.js     # Pinecone vector DB
+│   │   ├── langchain.service.ts  # LangChain streaming
+│   │   ├── ai.service.ts         # OpenAI integration
+│   │   ├── vector.service.ts     # Pinecone vector DB
+│   │   └── storage.service.ts    # ImageKit integration
 │   ├── sockets/         # Socket.IO server
-│   │   └── socket.server.js
+│   │   └── socket.server.ts
 │   ├── middlewares/     # Custom middleware
-│   │   └── auth.middleware.js
+│   │   └── auth.middleware.ts
 │   ├── constants/       # App constants
-│   │   └── faq.constants.js  # TechStore FAQ data
+│   │   └── faq.constants.ts  # TechStore FAQ data
 │   ├── db/              # Database connection
-│   │   └── db.js
-│   └── app.js           # Express app configuration
-├── server.js            # Entry point
+│   │   └── db.ts
+│   └── app.ts           # Express app configuration
+├── dist/                # Compiled JavaScript (gitignored)
+├── server.ts            # Entry point
+├── tsconfig.json        # TypeScript configuration
 └── package.json
 ```
 
@@ -111,9 +131,9 @@ Backend/
 - `ai-image-message` - Send image with prompt
 
 **Server → Client:**
-- `ai-stream-chunk` - Streaming response chunk
-- `ai-typing` - Typing indicator state
-- `ai-response` - Complete response (backward compatibility)
+- `ai-stream-chunk` - Streaming response chunk (real-time)
+- `stream-end` - Stream completion with optional title update
+- `ai-typing` - Typing indicator state (true/false)
 - `ai-error` - Error message
 - `image-uploaded` - Image upload success
 - `image-upload-error` - Image upload failure
@@ -164,7 +184,9 @@ curl -X POST http://localhost:3000/api/chat/message \
 ## 📦 Dependencies
 
 Main dependencies:
-- `express` - Web framework
+- `typescript` - TypeScript compiler
+- `tsx` - TypeScript execution for development
+- `express` (v4.18) - Web framework
 - `socket.io` - Real-time communication
 - `mongoose` - MongoDB ODM
 - `langchain` - LLM orchestration
@@ -172,18 +194,41 @@ Main dependencies:
 - `openai` - OpenAI SDK
 - `jsonwebtoken` - JWT authentication
 - `bcryptjs` - Password hashing
-- `pinecone` - Vector database
+- `@pinecone-database/pinecone` - Vector database
 - `imagekit` - Image CDN
+- `sharp` - Image processing
+- `cookie` - Cookie parsing
+
+TypeScript types:
+- `@types/node`, `@types/express`, `@types/cookie`, `@types/jsonwebtoken`, `@types/bcryptjs`, `@types/cookie-parser`, `@types/cors`, `@types/multer`, `@types/sharp`
 
 ## 🚀 Deployment
 
 For production deployment:
 
-1. Set `NODE_ENV=production`
-2. Use process manager (PM2 recommended)
-3. Set up MongoDB Atlas
-4. Configure CORS_ORIGIN for your frontend domain
-5. Use HTTPS for secure WebSocket connections
+1. **Build TypeScript:**
+   ```bash
+   npm run build
+   ```
+   This compiles all `.ts` files to JavaScript in the `dist/` folder.
+
+2. Set `NODE_ENV=production`
+3. Use process manager (PM2 recommended):
+   ```bash
+   pm2 start dist/server.js --name "chat-backend"
+   ```
+4. Set up MongoDB Atlas
+5. Configure CORS for your frontend domain in `src/app.ts`
+6. Use HTTPS for secure WebSocket connections
+
+## 🔧 TypeScript Configuration
+
+The project uses strict TypeScript configuration (`tsconfig.json`):
+- **Strict mode** enabled for maximum type safety
+- **Target**: ES2020
+- **Module**: CommonJS (Node.js compatible)
+- **Output**: `dist/` directory
+- **Source maps** enabled for debugging
 
 ## 📄 License
 
