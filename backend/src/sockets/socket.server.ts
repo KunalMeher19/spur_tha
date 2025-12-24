@@ -2,6 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import cookie from 'cookie';
 import jwt from 'jsonwebtoken';
+import sharp from 'sharp';
 import { Types } from 'mongoose';
 import userModel from '../models/user.model';
 import { contentGenerator, embeddingGenerator, generateTitleFromText } from '../services/ai.service';
@@ -115,13 +116,11 @@ function initSocketServer(httpServer: HTTPServer): void {
                 mime = fileTypeResult.mime;
             }
 
-            const fileName = `user_upload_${Date.now()}.${ext}`;
 
             // Prepare a processed buffer we can both feed to AI and upload later
-            let processedBuffer = buffer;
+            let processedBuffer: Buffer = buffer;
             let processedMime = mime;
             let processedExt = ext;
-            let _converted = false;
             try {
                 let img = sharp(buffer);
                 // Convert HEIC/HEIF to JPEG for compatibility
@@ -129,7 +128,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                     img = img.jpeg({ quality: 82 });
                     processedMime = 'image/jpeg';
                     processedExt = 'jpg';
-                    _converted = true;
+
                 }
 
                 // Optional: resize very large images to reduce payload and latency (max 1600px)
