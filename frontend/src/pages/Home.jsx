@@ -118,7 +118,7 @@ const Home = () => {
       // Remove processed chunk and reset flag
       setChunkQueue(prev => prev.slice(1));
       setIsProcessingQueue(false);
-    }, 150); // 80ms delay between chunks (increased from 50ms)
+    }, 120); // 80ms delay between chunks (increased from 50ms)
 
   }, [chunkQueue, isProcessingQueue]);
 

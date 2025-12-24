@@ -385,12 +385,15 @@ function initSocketServer(httpServer: HTTPServer): void {
                     updatedTitle = c && c.title || undefined;
                 } catch { }
 
-                // Emit complete response (backward compatibility)
-                socket.emit("ai-response", {
-                    content: fullResponse,
-                    chat: messagePayload.chat,
-                    ...(updatedTitle ? { title: updatedTitle } : {})
-                });
+                // NOTE: ai-response event removed to prevent duplicate messages
+                // The frontend now only uses ai-stream-chunk for streaming responses
+                // Emit stream-complete event with title update if needed
+                if (updatedTitle) {
+                    socket.emit("stream-complete", {
+                        chat: messagePayload.chat,
+                        title: updatedTitle
+                    });
+                }
 
                 // Save AI response to database
                 const [responseMessage, responseVectors] = await Promise.all([
