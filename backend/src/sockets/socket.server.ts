@@ -71,7 +71,6 @@ function initSocketServer(httpServer: HTTPServer): void {
         }
     });
 
-
     // Track number of connected users
     let connectedUsers = 0;
 

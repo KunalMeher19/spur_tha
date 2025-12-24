@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch server.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\"",
     "start": "node dist/server.js"
   },
   "keywords": [],
