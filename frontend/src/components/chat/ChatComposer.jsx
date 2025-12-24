@@ -14,7 +14,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
       setLocalMode(newMode);
     }
   };
-  
+
   const currentMode = onModeChange ? mode : localMode;
   const textareaRef = useRef(null);
   // Keep latest input in a ref to avoid stale closures in document listeners
@@ -275,7 +275,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
                 <textarea
                   ref={textareaRef}
                   className="composer-input"
-                  placeholder="Message Aura…"
+                  placeholder="Message Assistant…"
                   aria-label="Message"
                   value={input}
                   onChange={e => setInput(e.target.value)}

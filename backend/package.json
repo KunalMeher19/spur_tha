@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch server.ts",
-    "build": "tsc && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\"",
+    "build": "tsc && node -e \"const fs=require('fs'); if(fs.existsSync('public')){fs.cpSync('public','dist/public',{recursive:true}); console.log('✓ Public folder copied to dist/public')} else{console.error('✗ Public folder not found!'); process.exit(1)}\"",
     "start": "node dist/server.js"
   },
   "keywords": [],

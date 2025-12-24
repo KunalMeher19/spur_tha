@@ -459,7 +459,7 @@ const Home = () => {
         {messages.length === 0 && (
           <div className="chat-welcome" aria-hidden="true">
             <div className="chip">Early Preview</div>
-            <h1>Aura</h1>
+            <h1>Assistant</h1>
             <p>Ask anything. Paste text, brainstorm ideas, or get quick explanations. Your chats stay in the sidebar so you can pick up where you left off.</p>
             <p>Start by creating a new chat from top.</p>
           </div>
