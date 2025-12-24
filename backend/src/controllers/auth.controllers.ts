@@ -108,7 +108,7 @@ async function loginUser(req: AuthRequest, res: Response): Promise<Response> {
     });
 }
 
-async function logout(req: AuthRequest, res: Response): Promise<Response> {
+async function logout(_req: AuthRequest, res: Response): Promise<Response> {
     res.clearCookie('token');
     return res.status(200).json({
         message: 'Logged out successfully'

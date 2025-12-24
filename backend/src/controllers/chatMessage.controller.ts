@@ -5,6 +5,7 @@ import { generateResponse, validateMessage } from '../services/langchain.service
 import { embeddingGenerator, generateTitleFromText } from '../services/ai.service';
 import { createMemory } from '../services/vector.service';
 import { AuthRequest, SendMessageRequest, SendMessageResponse, ConversationMessage } from '../types';
+import { Types } from 'mongoose';
 
 /**
  * POST /api/chat/message - Assignment-compliant REST endpoint
@@ -146,12 +147,12 @@ async function sendMessage(req: AuthRequest, res: Response): Promise<Response> {
                     createMemory({
                         vectors: userEmbedding,
                         messageId: userMessage._id,
-                        metadata: { chat: chatId, user: userId, text: message }
+                        metadata: { chat: new Types.ObjectId(chatId), user: userId, text: message }
                     }),
                     createMemory({
                         vectors: aiEmbedding,
                         messageId: userMessage._id,
-                        metadata: { chat: chatId, user: userId, text: aiResponse }
+                        metadata: { chat: new Types.ObjectId(chatId), user: userId, text: aiResponse }
                     })
                 ]);
             } catch (e: any) {

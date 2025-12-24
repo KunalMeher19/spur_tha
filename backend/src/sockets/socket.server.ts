@@ -2,7 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import cookie from 'cookie';
 import jwt from 'jsonwebtoken';
-import sharp from 'sharp';
+import { Types } from 'mongoose';
 import userModel from '../models/user.model';
 import { contentGenerator, embeddingGenerator, generateTitleFromText } from '../services/ai.service';
 import uploadFile from '../services/storage.service';
@@ -121,7 +121,7 @@ function initSocketServer(httpServer: HTTPServer): void {
             let processedBuffer = buffer;
             let processedMime = mime;
             let processedExt = ext;
-            let converted = false;
+            let _converted = false;
             try {
                 let img = sharp(buffer);
                 // Convert HEIC/HEIF to JPEG for compatibility
@@ -129,7 +129,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                     img = img.jpeg({ quality: 82 });
                     processedMime = 'image/jpeg';
                     processedExt = 'jpg';
-                    converted = true;
+                    _converted = true;
                 }
 
                 // Optional: resize very large images to reduce payload and latency (max 1600px)
@@ -148,7 +148,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                         processedExt = 'png';
                     }
                 }
-                processedBuffer = await img.toBuffer();
+                processedBuffer = await img.toBuffer() as Buffer;
             } catch (e: any) {
                 console.warn('Image processing failed, falling back to original buffer', e && (e.message || e));
                 processedBuffer = buffer;
@@ -239,8 +239,8 @@ function initSocketServer(httpServer: HTTPServer): void {
                         embeddingGenerator(userMessage.content),
                         embeddingGenerator(aiResponse)
                     ]);
-                    await createMemory({ vectors: uVec, messageId: userMessage._id, metadata: { chat: chatId, user: socket.user!._id, text: userMessage.content } });
-                    await createMemory({ vectors: aVec, messageId: aiMessage._id, metadata: { chat: chatId, user: socket.user!._id, text: aiResponse } });
+                    await createMemory({ vectors: uVec, messageId: userMessage._id, metadata: { chat: new Types.ObjectId(chatId), user: socket.user!._id, text: userMessage.content } });
+                    await createMemory({ vectors: aVec, messageId: aiMessage._id, metadata: { chat: new Types.ObjectId(chatId), user: socket.user!._id, text: aiResponse } });
                 } catch (e: any) {
                     console.warn('Embedding generation failed for uploaded image flow (background)', e && (e.message || e));
                 }
@@ -314,8 +314,8 @@ function initSocketServer(httpServer: HTTPServer): void {
                     createMemory({
                         vectors,
                         messageId: message._id,
-                        metadata: { chat: messagePayload.chat, user: socket.user!._id, text: messagePayload.content }
-                    })
+                        metadata: { chat: new Types.ObjectId(messagePayload.chat), user: socket.user!._id, text: messagePayload.content }
+                    }),
                 ]);
 
                 // Build conversation history for LangChain
@@ -383,7 +383,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                 let updatedTitle: string | undefined;
                 try {
                     const c = await chatModel.findById(messagePayload.chat).lean();
-                    updatedTitle = c && c.title;
+                    updatedTitle = c && c.title || undefined;
                 } catch { }
 
                 // Emit complete response (backward compatibility)
@@ -409,7 +409,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                     vectors: responseVectors,
                     messageId: responseMessage._id,
                     metadata: {
-                        chat: messagePayload.chat,
+                        chat: new Types.ObjectId(messagePayload.chat),
                         user: socket.user!._id,
                         text: fullResponse
                     }

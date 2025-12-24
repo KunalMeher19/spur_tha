@@ -1,5 +1,4 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { MessagesPlaceholder } from '@langchain/core/prompts';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 import { generateFAQContext } from '../constants/faq.constants';
 import { ConversationMessage, LangChainOptions, ValidationResult, StreamChunkCallback } from '../types';

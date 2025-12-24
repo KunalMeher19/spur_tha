@@ -372,7 +372,6 @@ async function contentGeneratorFromMessages(
             // ignore
         }
 
-        const combined = textParts.join(' ').trim().slice(0, 200);
         const hasImage = textParts.some(t => t === '[image]');
 
         if (hasImage) {

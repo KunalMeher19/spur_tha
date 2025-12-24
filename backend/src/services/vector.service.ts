@@ -17,7 +17,7 @@ async function createMemory({ vectors, metadata, messageId }: VectorMemoryPayloa
         metadata: {
             ...metadata,
             chat: metadata.chat.toString(),
-            user: metadata.user?.toString() || null
+            user: metadata.user?.toString() || ''
         }
     }]);
 }

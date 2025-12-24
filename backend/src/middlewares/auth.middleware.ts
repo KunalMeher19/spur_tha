@@ -40,7 +40,7 @@ async function authUser(req: AuthRequest, res: Response, next: NextFunction): Pr
 }
 
 // Optional auth - allows both authenticated and unauthenticated requests
-async function optionalAuth(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+async function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction): Promise<void> {
     const { token } = req.cookies;
 
     if (!token) {

@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/auth', authRouter);
 app.use('/api/chat', chatRouter);
 
-app.get('*', (req, res) => {
+app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 

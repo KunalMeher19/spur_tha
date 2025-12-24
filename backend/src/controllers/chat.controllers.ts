@@ -31,7 +31,6 @@ async function getChats(req: AuthRequest, res: Response): Promise<Response> {
     const tempChats = await chatModel.find({ user: user._id, isTemp: true }).sort({ createdAt: -1 });
     if (tempChats.length > 1) {
         // Keep the most recent temp chat; delete older temp chats that are unused (0 messages)
-        const keepId = String(tempChats[0]._id);
         const candidateIds = tempChats.slice(1).map(c => c._id);
         if (candidateIds.length) {
             const counts = await messageModel.aggregate([
