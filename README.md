@@ -4,7 +4,9 @@ A modern AI-powered customer support chat application built with **Node.js, Lang
 
 ## 🚀 Live Demo
 
-[Hosted URL will go here after deployment]
+**🔗 [https://spur-tha.onrender.com/](https://spur-tha.onrender.com/)**
+
+> **Quick Login:** Visit [https://spur-tha.onrender.com/auto-login.html](https://spur-tha.onrender.com/auto-login.html) for automatic test account login
 
 ## ✨ Features
 
