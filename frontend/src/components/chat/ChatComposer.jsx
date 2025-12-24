@@ -211,7 +211,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
               </div>
             )}
             {/* Toggle row above input */}
-            <div className="composer-mode-toggle composer-mode-toggle-top">
+            {/* <div className="composer-mode-toggle composer-mode-toggle-top">
               <span className={"mode-label" + (currentMode === 'normal' ? ' active' : '')}>Normal</span>
               <button
                 type="button"
@@ -222,7 +222,7 @@ const ChatComposer = ({ input, setInput, onSend, isSending, mode = 'normal', onM
                 <span className="toggle-thumb" />
               </button>
               <span className={"mode-label" + (currentMode === 'thinking' ? ' active' : '')}>Thinking</span>
-            </div>
+            </div> */}
             <div className='composer-input-row'>
               {/* Attach button */}
               <div className="attach-container" ref={attachMenuRef}>
