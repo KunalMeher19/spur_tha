@@ -349,12 +349,19 @@ function initSocketServer(httpServer: HTTPServer): void {
 
                 // Stream AI response using LangChain
                 let fullResponse = '';
+                let isFirstChunk = true;
 
                 try {
                     fullResponse = await generateStreamingResponse(
                         conversationHistory,
                         messagePayload.content,
                         (chunk: string) => {
+                            // Turn off typing indicator on first chunk for better UX
+                            if (isFirstChunk) {
+                                socket.emit("ai-typing", false);
+                                isFirstChunk = false;
+                            }
+
                             // Emit each chunk in real-time
                             socket.emit('ai-stream-chunk', {
                                 chunk,
@@ -365,7 +372,7 @@ function initSocketServer(httpServer: HTTPServer): void {
                     );
                 } catch (streamError: any) {
                     console.error('LangChain streaming error:', streamError);
-                    // Emit typing indicator off
+                    // Emit typing indicator off on error
                     socket.emit("ai-typing", false);
 
                     socket.emit("ai-error", {
@@ -374,9 +381,6 @@ function initSocketServer(httpServer: HTTPServer): void {
                     });
                     return;
                 }
-
-                // Emit typing indicator off
-                socket.emit("ai-typing", false);
 
                 // Fetch latest chat doc to include updated title if it changed
                 let updatedTitle: string | undefined;
@@ -387,13 +391,11 @@ function initSocketServer(httpServer: HTTPServer): void {
 
                 // NOTE: ai-response event removed to prevent duplicate messages
                 // The frontend now only uses ai-stream-chunk for streaming responses
-                // Emit stream-complete event with title update if needed
-                if (updatedTitle) {
-                    socket.emit("stream-complete", {
-                        chat: messagePayload.chat,
-                        title: updatedTitle
-                    });
-                }
+                // Emit stream-end event to signal completion and include title update if needed
+                socket.emit("stream-end", {
+                    chat: messagePayload.chat,
+                    ...(updatedTitle ? { title: updatedTitle } : {})
+                });
 
                 // Save AI response to database
                 const [responseMessage, responseVectors] = await Promise.all([
