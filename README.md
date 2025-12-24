@@ -22,7 +22,6 @@ A modern AI-powered customer support chat application built with **Node.js, Lang
 - ✅ **REST API Endpoint** - POST /api/chat/message for assignment compliance
 - ✅ **Authentication** - JWT-based user auth with HTTP-only cookies
 - ✅ **Image Support** - Upload images with prompts, camera/gallery integration
-- ✅ **Thinking Mode** - Advanced reasoning with o3-mini model
 
 ### Tech Stack
 | Layer | Technology |
