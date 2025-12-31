@@ -10,8 +10,8 @@ import chatRouter from './routers/chat.router';
 const app = express();
 
 const allowedOrigins = [
-    'https://aura-autologin.netlify.app',
-    'https://aura-x4bd.onrender.com',     // your app origin
+    'https://spur-tha.onrender.com/auto-login.html',
+    'https://spur-tha.onrender.com',     // your app origin
     'http://localhost:5173'               // dev origin you used earlier
 ];
 
