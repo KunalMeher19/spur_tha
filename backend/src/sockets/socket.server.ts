@@ -45,7 +45,7 @@ function initSocketServer(httpServer: HTTPServer): void {
     const io = new SocketIOServer(httpServer, {
         maxHttpBufferSize: 20 * 1024 * 1024, // 20 MB
         cors: {
-            origin: "http://localhost:5173",
+            origin: "http://spur-tha.onrender.com",
             allowedHeaders: ["Content-Type", "Authorization"],
             credentials: true
         }
