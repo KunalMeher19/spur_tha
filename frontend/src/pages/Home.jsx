@@ -460,7 +460,7 @@ const Home = () => {
           <div className="chat-welcome" aria-hidden="true">
             <div className="chip">Early Preview</div>
             <h1>Assistant</h1>
-            <p>Ask anything. Paste text, brainstorm ideas, or get quick explanations. Your chats stay in the sidebar so you can pick up where you left off.</p>
+            <p>Ask anything. Paste text, upload images, brainstorm ideas, or get quick explanations. Your chats stay in the sidebar so you can pick up where you left off.</p>
             <p>Start by creating a new chat from top.</p>
           </div>
         )}
